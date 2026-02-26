@@ -1,0 +1,32 @@
+# 仅含 Firefox 的轻量镜像（在能正常爬取前提下尽量缩小体积）
+# 优化：单阶段 + 不写 .pyc + 安装后删文档/语言包/缓存
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+# 不生成 .pyc，减少层体积
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 只安装 Firefox 及系统依赖，安装后做体积清理
+RUN apt-get update && \
+    pip install --no-cache-dir playwright==1.58.0 && \
+    playwright install firefox --with-deps && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /root/.cache/pip && \
+    rm -rf /usr/share/doc /usr/share/man /usr/share/locale/* /usr/share/icons/* \
+           /tmp/* /var/tmp/* 2>/dev/null; true
+
+# 应用依赖（不缓存 pip）
+COPY requirements-browser.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    find /usr/local/lib -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
+
+COPY main.py config.yaml ./
+COPY scrapers ./scrapers
+COPY utils ./utils
+RUN find /app -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
+
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["python", "-m", "functions_framework", "--target=crawl_news_browser", "--port=8080"]

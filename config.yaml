@@ -1,0 +1,11 @@
+bigquery:
+  project_id: "news-project-487409"  # 替换为您的 GCP 项目 ID
+  dataset: "news_project"
+  table: "news_articles"
+  location: "US"
+
+# 爬虫列表以代码中的 SCRAPER_REGISTRY / SCRAPER_REGISTRY_BROWSER 为准，sources=all 时用注册表 keys，此处不再重复配置
+
+concurrency:
+  max_workers: 5  # 最大并发爬虫数
+  timeout_per_scraper: 60  # 每个爬虫超时时间（秒）

@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual
+venv/
+.venv/
+ENV/
+env/
+
+# IDE / OS
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 配置与备份（含敏感信息勿提交）
+config.yaml.bak
+*.bak
+.env
+.env.*
+!.env.example
+
+# 日志与临时
+*.log
+logs/
+tmp/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 本地/产出数据（按需放开 *.json）
+data/
+*.csv
+news/
