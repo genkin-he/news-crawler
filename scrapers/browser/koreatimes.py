@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-"""Korea Times 加密货币频道无头浏览器爬虫 - Playwright + BeautifulSoup 解析正文"""
+"""Korea Times 加密货币频道无头浏览器爬虫（样例）— Playwright + BeautifulSoup，与 simple/koreatimes 同源"""
 import os
 import sys
 
@@ -11,12 +11,11 @@ from scrapers.browser.base_browser_scraper import BaseBrowserScraper
 from utils.bigquery_client import BigQueryClient
 
 
-# 站点返回的错误页关键词，出现则视为非正常页面
+# 站点返回的错误页关键词
 _KOREATIMES_ERROR_PAGE_MARKERS = ("Service Error", "unexpected server error", "Go to Homepage")
 
 
 def _is_koreatimes_error_page(page) -> bool:
-    """判断当前页是否为 Korea Times 的错误页（如 5xx 或反爬页）。"""
     try:
         content = page.content()
         return any(marker in content for marker in _KOREATIMES_ERROR_PAGE_MARKERS)
@@ -25,15 +24,15 @@ def _is_koreatimes_error_page(page) -> bool:
 
 
 class KoreatimesScraper(BaseBrowserScraper):
-    """Korea Times 加密货币频道，需 Playwright 渲染列表与详情页"""
+    """Korea Times 加密货币频道（浏览器样例）：需 Playwright 渲染列表与详情页。同源 simple 版见 scrapers/simple/koreatimes.py"""
 
-    RUN_TIMEOUT = 120  # 每篇拉详情，适当放宽
+    RUN_TIMEOUT = 120
 
     def __init__(self, bq_client: BigQueryClient):
         super().__init__("koreatimes", bq_client)
 
     def _get_detail(self, link: str, page) -> str:
-        """拉取文章详情页正文，使用部分 class 匹配避免站点 CSS 哈希变更失效。"""
+        """拉取文章详情页正文。"""
         self.util.info(f"link: {link}")
         try:
             page.goto(link, wait_until="domcontentloaded", timeout=10000)
@@ -49,7 +48,7 @@ class KoreatimesScraper(BaseBrowserScraper):
             soup = lxml.select_one("[class*='EditorContents_contents']")
             if not soup:
                 return ""
-            for tag in soup.find_all("script,style,input,iframe"):
+            for tag in soup.find_all(["script", "style", "input", "iframe"]):
                 tag.decompose()
             for tag in soup.find_all(
                 lambda t: t.get("id") and "koreatimes_inarticle" in (t.get("id") or "")
@@ -64,7 +63,7 @@ class KoreatimesScraper(BaseBrowserScraper):
 
     def _run_impl(self):
         try:
-            self.util.info("开始爬取 Korea Times 加密货币...")
+            self.util.info("开始爬取 Korea Times 加密货币（browser）...")
             from playwright.sync_api import sync_playwright
 
             new_articles = []
@@ -82,7 +81,7 @@ class KoreatimesScraper(BaseBrowserScraper):
                     page.goto(list_url, wait_until="domcontentloaded", timeout=10000)
                     self.util.info("开始访问网页...")
                     if _is_koreatimes_error_page(page):
-                        self.util.error("列表页返回错误页（如 Service Error），跳过本次爬取")
+                        self.util.error("列表页返回错误页，跳过本次爬取")
                         return self.get_stats()
                     page.wait_for_selector(
                         "a[href*='/economy/cryptocurrency/202']",
@@ -113,7 +112,6 @@ class KoreatimesScraper(BaseBrowserScraper):
                             title_el = card.query_selector("h2, h3")
                             title = title_el.inner_text().strip() if title_el else ""
                             if not title:
-                                self.util.info("跳过空标题文章")
                                 continue
 
                             detail_page = context.new_page()
@@ -128,7 +126,7 @@ class KoreatimesScraper(BaseBrowserScraper):
                                         "pub_date": self.util.current_time_string(),
                                         "kind": 1,
                                         "language": "en",
-                                        "source_name": "koreatimes",
+                                        "source_name": "Korea Times",
                                     })
                             finally:
                                 detail_page.close()

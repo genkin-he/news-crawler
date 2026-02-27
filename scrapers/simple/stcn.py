@@ -8,7 +8,7 @@ import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from scrapers.base_scraper import BaseScraper
+from scrapers.simple.base_simple_scraper import BaseSimpleScraper
 
 # 带上 X-Requested-With 后同一 URL 返回 JSON 而非 HTML
 STCN_LIST_URL = "https://www.stcn.com/article/list.html?type=kx"
@@ -20,13 +20,13 @@ HEADERS = {
 }
 
 
-class StcnScraper(BaseScraper):
+class StcnScraper(BaseSimpleScraper):
     """证券时报快讯，直接请求列表 API，仅用 requests，可跑在 Cloud Functions"""
 
     def __init__(self, bq_client):
         super().__init__("stcn", bq_client)
 
-    def run(self):
+    def _run_impl(self):
         try:
             self.util.info("开始爬取 STCN 快讯...")
             response = requests.get(STCN_LIST_URL, headers=HEADERS, timeout=15)
@@ -37,6 +37,8 @@ class StcnScraper(BaseScraper):
 
             new_articles = []
             for item in articles_data[:15]:
+                if getattr(self, "_timed_out", False):
+                    break
                 link = "https://www.stcn.com{}".format((item.get("url") or "").strip())
                 if not link or link == "https://www.stcn.com":
                     continue
@@ -73,7 +75,9 @@ class StcnScraper(BaseScraper):
                     "source_name": "证券时报",
                 })
 
-            if new_articles:
+            if getattr(self, "_timed_out", False):
+                self.util.info("已超时，跳过写入")
+            elif new_articles:
                 self.save_articles(new_articles)
                 self.util.info(f"成功爬取 {len(new_articles)} 篇 STCN 快讯")
             else:

@@ -8,7 +8,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from scrapers.base_scraper import BaseScraper
+from scrapers.simple.base_simple_scraper import BaseSimpleScraper
 
 headers = {
     "accept": 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -16,7 +16,7 @@ headers = {
     "user-agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
 }
 
-class APNewsScraper(BaseScraper):
+class APNewsScraper(BaseSimpleScraper):
     """AP News 财经市场爬虫"""
 
     def __init__(self, bq_client):
@@ -70,9 +70,8 @@ class APNewsScraper(BaseScraper):
             self.stats['errors'] += 1
             return ""
 
-    def run(self):
+    def _run_impl(self):
         """执行爬虫：只处理时间戳为「x mins ago」的条目，其余过滤"""
-        # 只认 "N min ago" / "N mins ago"，其余（Yesterday、February 21 等）跳过
         mins_ago_re = re.compile(r"\d+\s*min(s)?\s*ago", re.I)
 
         try:
@@ -89,6 +88,8 @@ class APNewsScraper(BaseScraper):
                 self.util.info(f"列表条目: {len(items)}")
 
                 for item in items:
+                    if getattr(self, "_timed_out", False):
+                        break
                     try:
                         time_el = item.select_one(".Timestamp-template")
                         time_text = (time_el.get_text(strip=True) or "") if time_el else ""
@@ -128,7 +129,9 @@ class APNewsScraper(BaseScraper):
                         self.stats["errors"] += 1
                         continue
 
-                if new_articles:
+                if getattr(self, "_timed_out", False):
+                    self.util.info("已超时，跳过写入")
+                elif new_articles:
                     self.save_articles(new_articles)
                     self.util.info(f"成功爬取 {len(new_articles)} 篇文章")
 

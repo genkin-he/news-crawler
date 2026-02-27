@@ -32,12 +32,14 @@ from scrapers.simple.techcrunch import TechCrunchScraper
 from scrapers.simple.apnews import APNewsScraper
 from scrapers.simple.coinlive import CoinliveScraper
 from scrapers.simple.stcn import StcnScraper
+from scrapers.simple.koreatimes import KoreatimesScraper
 
 SCRAPER_REGISTRY: Dict[str, type] = {
     'techcrunch': TechCrunchScraper,
     'apnews': APNewsScraper,
     'coinlive': CoinliveScraper,
     'stcn': StcnScraper,
+    'koreatimes': KoreatimesScraper,
 }
 
 

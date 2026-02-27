@@ -7,7 +7,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from scrapers.base_scraper import BaseScraper
+from scrapers.simple.base_simple_scraper import BaseSimpleScraper
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -17,7 +17,7 @@ headers = {
     "pragma": "no-cache",
 }
 
-class TechCrunchScraper(BaseScraper):
+class TechCrunchScraper(BaseSimpleScraper):
     """TechCrunch 新闻爬虫"""
 
     def __init__(self, bq_client):
@@ -63,8 +63,7 @@ class TechCrunchScraper(BaseScraper):
             self.stats['errors'] += 1
             return ""
 
-    def run(self):
-        """执行爬虫"""
+    def _run_impl(self):
         try:
             self.util.info("开始爬取 TechCrunch...")
             post_count = 0
@@ -81,6 +80,8 @@ class TechCrunchScraper(BaseScraper):
                 nodes = soup.select(".wp-block-post-template > .wp-block-post")
 
                 for node in nodes:
+                    if getattr(self, "_timed_out", False):
+                        break
                     if post_count >= 3:
                         break
 
@@ -120,7 +121,9 @@ class TechCrunchScraper(BaseScraper):
                         continue
 
                 # 批量保存文章
-                if new_articles:
+                if getattr(self, "_timed_out", False):
+                    self.util.info("已超时，跳过写入")
+                elif new_articles:
                     self.save_articles(new_articles)
                     self.util.info(f"成功爬取 {len(new_articles)} 篇文章")
             else:
