@@ -116,37 +116,23 @@ FUNCTION_URL=$(gcloud functions describe crawl-news \
 echo "函数 URL: $FUNCTION_URL"
 ```
 
-### 2. 测试单个爬虫
+### 2. 测试简单爬虫（Cloud Functions）
 ```bash
+# sources: 逗号分隔的 source 名，或 "all" 表示全部
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch"}' \
+  -d '{"sources": "all"}' \
   $FUNCTION_URL
 ```
 
-**期望输出**：
-```json
-{
-  "success": true,
-  "total_new_articles": 3,
-  "total_skipped": 0,
-  "total_errors": 0,
-  "results": {
-    "techcrunch": {
-      "new_articles": 3,
-      "skipped": 0,
-      "errors": 0
-    }
-  },
-  "errors": []
-}
-```
+**期望**：返回 JSON，含 `success`、`total_new_articles`、`results`（各 source 的统计）、`errors`。
 
-### 3. 测试多个爬虫
+### 3. 测试指定 source
 ```bash
+# 仅跑某几个 source（具体名称见 main.py 中 SCRAPER_REGISTRY）
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch,apnews,coinlive"}' \
+  -d '{"sources": "source1,source2"}' \
   $FUNCTION_URL
 ```
 
@@ -160,16 +146,7 @@ bq query --use_legacy_sql=false \
    GROUP BY source"
 ```
 
-**期望输出**：
-```
-+------------+-------+
-|   source   | count |
-+------------+-------+
-| techcrunch |     3 |
-| apnews     |     3 |
-| coinlive   |     4 |
-+------------+-------+
-```
+**期望**：按 `source` 分组的条数，说明数据已写入。
 
 ### 5. 查看函数日志
 ```bash
@@ -181,9 +158,10 @@ gcloud logging read \
 
 ### 6. 测试无头浏览器爬虫（若已部署 Cloud Run）
 ```bash
-# 从 deploy_cloudrun_browser.sh 输出或控制台获取服务 URL，例如：
+# 从 deploy_cloudrun_browser.sh 输出或控制台获取服务 URL
+# sources: "all" 或逗号分隔；test: true 不写 BigQuery
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"sources": "stcn", "test": true}' \
+  -d '{"sources": "all", "test": true}' \
   https://crawl-news-browser-xxxxx-uc.a.run.app
 ```
 

@@ -34,14 +34,8 @@ news-google/
 ├── config.yaml                  # Config (GCP, concurrency)
 ├── scrapers/
 │   ├── base_scraper.py
-│   ├── simple/                  # Simple crawlers (requests/BeautifulSoup, no browser)
-│   │   ├── techcrunch.py
-│   │   ├── apnews.py
-│   │   └── coinlive.py
-│   └── browser/                 # Headless browser crawlers (Playwright, crawl_news_browser only)
-│       ├── base_browser_scraper.py
-│       ├── stcn.py
-│       ├── koreatimes.py
+│   ├── simple/                  # Simple crawlers (requests/BeautifulSoup, no browser) → Cloud Functions
+│   └── browser/                 # Headless browser crawlers (Playwright) → Cloud Run only
 │       └── __init__.py          # SCRAPER_REGISTRY_BROWSER
 ├── utils/
 └── deploy/
@@ -106,10 +100,6 @@ sh deploy/deploy_cloudrun_browser.sh
 **Trigger via HTTP**
 ```bash
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch"}' \
-  https://REGION-PROJECT.cloudfunctions.net/crawl-news
-
-curl -X POST -H "Content-Type: application/json" \
   -d '{"sources": "all"}' \
   https://REGION-PROJECT.cloudfunctions.net/crawl-news
 ```
@@ -137,14 +127,6 @@ WHERE DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
 GROUP BY source
 ORDER BY cnt DESC;
 ```
-
-## Supported sources
-
-**Simple (Cloud Functions)**  
-- techcrunch, apnews, coinlive  
-
-**Headless browser (Cloud Run)**  
-- stcn, koreatimes  
 
 ## Adding a new crawler
 

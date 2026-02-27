@@ -31,14 +31,8 @@ news-google/
 ├── config.yaml                 # 配置文件（GCP、并发等）
 ├── scrapers/
 │   ├── base_scraper.py
-│   ├── simple/                 # 简单爬虫（requests/BeautifulSoup，无浏览器）
-│   │   ├── techcrunch.py
-│   │   ├── apnews.py
-│   │   └── coinlive.py
-│   └── browser/                # 无头浏览器爬虫（Playwright，仅 crawl_news_browser 使用）
-│       ├── base_browser_scraper.py
-│       ├── stcn.py
-│       ├── koreatimes.py
+│   ├── simple/                 # 简单爬虫（requests/BeautifulSoup，无浏览器）→ Cloud Functions
+│   └── browser/                # 无头浏览器爬虫（Playwright）→ 仅 Cloud Run
 │       └── __init__.py         # SCRAPER_REGISTRY_BROWSER
 ├── utils/
 └── deploy/
@@ -113,12 +107,7 @@ sh deploy/deploy_cloudrun_browser.sh  # 无头浏览器 → Cloud Run（含每 3
 
 **手动触发测试**
 ```bash
-# 测试单个新闻源
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch"}' \
-  https://REGION-PROJECT.cloudfunctions.net/crawl-news
-
-# 测试所有新闻源
+# 触发爬取（sources: 逗号分隔或 "all"）
 curl -X POST -H "Content-Type: application/json" \
   -d '{"sources": "all"}' \
   https://REGION-PROJECT.cloudfunctions.net/crawl-news
@@ -128,7 +117,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 需在项目根目录执行，并已配置 GCP 认证（`gcloud auth application-default login`）。默认使用 **uv**，也可用 `make run PYTHON=python`。
 
-**简单爬虫**（techcrunch / apnews / coinlive）
+**简单爬虫**
 ```bash
 make run
 # 或
@@ -137,7 +126,7 @@ uv run python main.py
 pip install -r requirements.txt && python main.py
 ```
 
-**无头浏览器爬虫**（stcn / koreatimes，需 Playwright + Firefox）
+**无头浏览器爬虫**
 ```bash
 make install-browser   # 首次：安装 requirements-browser.txt + playwright install firefox
 make run-browser       # 运行（sources=all, test=True，不写 BigQuery）
@@ -166,10 +155,10 @@ WHERE DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
 GROUP BY source
 ORDER BY cnt DESC;
 
--- 查询特定新闻源
+-- 按 source 筛选（替换为实际 source 值）
 SELECT title, link, pub_date
 FROM `你的项目ID.news_project.news_articles`
-WHERE source = 'techcrunch'
+WHERE source = 'your_source'
   AND DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)
 ORDER BY pub_date DESC
 LIMIT 20;
@@ -181,19 +170,6 @@ gcloud logging read \
   "resource.type=cloud_function AND resource.labels.function_name=crawl-news" \
   --limit=50 --format=json
 ```
-
-## 支持的新闻源
-
-**简单爬虫**（Cloud Functions，`crawl_news`）
-- ✅ techcrunch - TechCrunch 科技新闻
-- ✅ apnews - AP News 财经市场
-- ✅ coinlive - CoinLive 加密货币新闻
-
-**无头浏览器爬虫**（Cloud Run，`crawl_news_browser`）
-- ✅ stcn - 证券时报快讯
-- ✅ koreatimes - Korea Times 加密货币频道
-
-**图例**: ✅ 已实现
 
 ## 开发指南
 

@@ -27,15 +27,17 @@ class MockBigQueryClient:
         return True
 
 
-# 简单爬虫（仅 requests/BeautifulSoup，无浏览器）
+# 简单爬虫（仅 requests/BeautifulSoup，无浏览器，可部署到 Cloud Functions）
 from scrapers.simple.techcrunch import TechCrunchScraper
 from scrapers.simple.apnews import APNewsScraper
 from scrapers.simple.coinlive import CoinliveScraper
+from scrapers.simple.stcn import StcnScraper
 
 SCRAPER_REGISTRY: Dict[str, type] = {
     'techcrunch': TechCrunchScraper,
     'apnews': APNewsScraper,
     'coinlive': CoinliveScraper,
+    'stcn': StcnScraper,
 }
 
 
