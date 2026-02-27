@@ -43,7 +43,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --allow-unauthenticated \
   --memory=2Gi \
   --timeout=360s \
-  --max-instances=10 \
+  --max-instances=1 \
   --set-env-vars="BQ_DATASET=news_project"
 
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format="value(status.url)")

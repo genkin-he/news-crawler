@@ -112,6 +112,7 @@ class TechCrunchScraper(BaseScraper):
                                 "pub_date": self.util.current_time_string(),
                                 "kind": 1,
                                 "language": "en",
+                                "source_name": "TechCrunch",
                             })
                     except Exception as e:
                         self.util.error(f"解析文章失败: {str(e)}")

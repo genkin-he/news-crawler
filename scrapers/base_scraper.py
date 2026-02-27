@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 """爬虫基类，提供通用的去重、保存等功能"""
-from typing import List, Dict, Optional
+from typing import List, Dict
 import sys
 import os
 
@@ -14,17 +14,17 @@ from utils.bigquery_client import BigQueryClient
 class BaseScraper:
     """爬虫基类"""
 
-    def __init__(self, source_name: str, bq_client: BigQueryClient):
+    def __init__(self, source: str, bq_client: BigQueryClient):
         """
         初始化爬虫
 
         Args:
-            source_name: 新闻源名称（如 bloomberg, coinlive）
+            source: 新闻源名称（如 bloomberg, coinlive）
             bq_client: BigQuery 客户端实例
         """
-        self.source = source_name
+        self.source = source
         self.bq = bq_client
-        self.util = SpiderUtil(name=source_name)
+        self.util = SpiderUtil(name=source)
 
         # 统计信息
         self.stats = {

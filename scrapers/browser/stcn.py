@@ -82,9 +82,9 @@ class StcnScraper(BaseBrowserScraper):
                             "link": link,
                             "author": "",
                             "pub_date": pub_date,
-                            "source": "stcn",
                             "kind": 2,
                             "language": "zh-CN",
+                            "source_name": "证券时报",
                         })
                 finally:
                     context.close()

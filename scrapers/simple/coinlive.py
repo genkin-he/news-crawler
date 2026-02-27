@@ -61,6 +61,7 @@ class CoinliveScraper(BaseScraper):
                                 "pub_date": pub_date,
                                 "kind": 2,
                                 "language": "en",
+                                "source_name": "CoinLive",
                             })
 
                     except Exception as e:

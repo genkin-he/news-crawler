@@ -84,6 +84,7 @@ class BigQueryClient:
                 bigquery.SchemaField("author", "STRING"),
                 bigquery.SchemaField("pub_date", "TIMESTAMP", mode="REQUIRED"),
                 bigquery.SchemaField("source", "STRING", mode="REQUIRED"),
+                bigquery.SchemaField("source_name", "STRING"),
                 bigquery.SchemaField("kind", "INTEGER"),
                 bigquery.SchemaField("language", "STRING"),
                 bigquery.SchemaField("crawled_at", "TIMESTAMP", mode="REQUIRED"),
@@ -211,6 +212,7 @@ class BigQueryClient:
             elif not isinstance(pub_date, datetime):
                 pub_date = datetime.now()
 
+            source = article.get('source', '')
             row = {
                 "id": article_id,
                 "title": article.get('title', ''),
@@ -218,7 +220,8 @@ class BigQueryClient:
                 "link": article['link'],
                 "author": article.get('author', ''),
                 "pub_date": pub_date.isoformat(),
-                "source": article.get('source', ''),
+                "source": source,
+                "source_name": article.get('source_name') or source,
                 "kind": article.get('kind', 1),
                 "language": article.get('language', 'en'),
                 "crawled_at": datetime.now().isoformat(),

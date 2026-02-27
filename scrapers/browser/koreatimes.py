@@ -11,6 +11,19 @@ from scrapers.browser.base_browser_scraper import BaseBrowserScraper
 from utils.bigquery_client import BigQueryClient
 
 
+# 站点返回的错误页关键词，出现则视为非正常页面
+_KOREATIMES_ERROR_PAGE_MARKERS = ("Service Error", "unexpected server error", "Go to Homepage")
+
+
+def _is_koreatimes_error_page(page) -> bool:
+    """判断当前页是否为 Korea Times 的错误页（如 5xx 或反爬页）。"""
+    try:
+        content = page.content()
+        return any(marker in content for marker in _KOREATIMES_ERROR_PAGE_MARKERS)
+    except Exception:
+        return True
+
+
 class KoreatimesScraper(BaseBrowserScraper):
     """Korea Times 加密货币频道，需 Playwright 渲染列表与详情页"""
 
@@ -24,6 +37,9 @@ class KoreatimesScraper(BaseBrowserScraper):
         self.util.info(f"link: {link}")
         try:
             page.goto(link, wait_until="domcontentloaded", timeout=10000)
+            if _is_koreatimes_error_page(page):
+                self.util.error(f"详情页为错误页，跳过: {link}")
+                return ""
             page.wait_for_selector("[class*='EditorContents_contents']", timeout=30000)
             wrap_selector = "[class*='EditorContents_wrap']"
             detail_handles = page.query_selector_all(wrap_selector)
@@ -65,6 +81,9 @@ class KoreatimesScraper(BaseBrowserScraper):
                 try:
                     page.goto(list_url, wait_until="domcontentloaded", timeout=10000)
                     self.util.info("开始访问网页...")
+                    if _is_koreatimes_error_page(page):
+                        self.util.error("列表页返回错误页（如 Service Error），跳过本次爬取")
+                        return self.get_stats()
                     page.wait_for_selector(
                         "a[href*='/economy/cryptocurrency/202']",
                         timeout=30000,
@@ -107,9 +126,9 @@ class KoreatimesScraper(BaseBrowserScraper):
                                         "link": link,
                                         "author": "",
                                         "pub_date": self.util.current_time_string(),
-                                        "source": "koreatimes",
                                         "kind": 1,
                                         "language": "en",
+                                        "source_name": "koreatimes",
                                     })
                             finally:
                                 detail_page.close()

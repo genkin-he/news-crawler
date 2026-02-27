@@ -116,6 +116,7 @@ class APNewsScraper(BaseScraper):
                                 "pub_date": self.util.current_time_string(),
                                 "kind": 1,
                                 "language": "en",
+                                "source_name": "美联社",
                             })
 
                     except Exception as e:
