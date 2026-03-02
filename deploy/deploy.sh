@@ -19,8 +19,14 @@ echo "  区域: $REGION"
 echo "  函数名: $FUNCTION_NAME"
 echo ""
 
-# 检查是否已登录 gcloud
-if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
+# CI（如 GitHub Actions）会设置 GOOGLE_APPLICATION_CREDENTIALS，需在本进程内激活 gcloud
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+fi
+
+# 检查是否已登录 gcloud（不用 --filter=status:ACTIVE，服务账号下可能不返回）
+ACCOUNT=$(gcloud auth list --format="value(account)" 2>/dev/null | head -n1)
+if [ -z "$ACCOUNT" ]; then
     echo "错误: 未登录 Google Cloud，请先运行 'gcloud auth login'"
     exit 1
 fi

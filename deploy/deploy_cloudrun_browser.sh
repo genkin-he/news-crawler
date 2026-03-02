@@ -23,7 +23,13 @@ echo "  服务名: $SERVICE_NAME"
 echo "  镜像: Dockerfile.firefox（仅 Firefox，体积更小）"
 echo ""
 
-if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
+# CI（如 GitHub Actions）会设置 GOOGLE_APPLICATION_CREDENTIALS，需在本进程内激活 gcloud
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+fi
+
+ACCOUNT=$(gcloud auth list --format="value(account)" 2>/dev/null | head -n1)
+if [ -z "$ACCOUNT" ]; then
     echo "错误: 未登录 Google Cloud，请先运行 'gcloud auth login'"
     exit 1
 fi

@@ -24,6 +24,11 @@ echo "  执行频率: $SCHEDULE (每x分钟)"
 echo "  时区: $TIMEZONE"
 echo ""
 
+# CI（如 GitHub Actions）会设置 GOOGLE_APPLICATION_CREDENTIALS，需在本进程内激活 gcloud
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+fi
+
 # 设置项目
 gcloud config set project "$PROJECT_ID"
 
