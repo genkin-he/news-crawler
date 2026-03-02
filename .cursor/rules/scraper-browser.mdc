@@ -1,0 +1,16 @@
+---
+description: 新增浏览器爬虫时须删除对应的 simple 爬虫，避免同源重复
+globs: scrapers/**/*.py
+alwaysApply: false
+---
+
+# 浏览器爬虫与 simple 爬虫互斥
+
+当为某个新闻源**新增 browser 爬虫**（`scrapers/browser/`）时，必须**同步清理 simple 侧冗余**：
+
+1. **删除** 同源 simple 爬虫文件：`scrapers/simple/<源名>.py`
+2. **在 main.py 中**：去掉该源的 `from scrapers.simple.xxx import XxxScraper` 以及 `SCRAPER_REGISTRY` 中的 `'<源名>': XxxScraper`
+
+同一源只保留一种实现：要么在 `SCRAPER_REGISTRY`（simple，crawl_news），要么在 `SCRAPER_REGISTRY_BROWSER`（crawl_news_browser），不要两处同时存在。
+
+已迁移为仅 browser 的源示例：bloomberg、datacenterdynamics、iyiou。

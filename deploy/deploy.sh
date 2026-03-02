@@ -52,7 +52,7 @@ gcloud functions deploy "$FUNCTION_NAME" \
   --allow-unauthenticated \
   --memory=512MB \
   --timeout=540s \
-  --max-instances=10 \
+  --max-instances=1 \
   --min-instances=0 \
   --set-env-vars="BQ_DATASET=news_project" \
   --service-account="${PROJECT_ID}@appspot.gserviceaccount.com"

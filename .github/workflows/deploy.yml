@@ -1,0 +1,76 @@
+# 仅手动触发：在 Actions 页点击 "Run workflow" 并选择要部署的 target
+# 部署 job 使用 environment: deploy，需在仓库中创建环境并配置「必需审阅者」以限制谁可完成部署
+# Secrets：GCP_PROJECT_ID、GCP_SA_KEY
+
+name: Deploy to GCP
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "部署目标"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - simple   # 仅 crawl-news (Cloud Functions)
+          - browser  # 仅 crawl-news-browser (Cloud Run)
+          - all      # 两者都部署
+
+env:
+  GCP_REGION: us-central1
+
+jobs:
+  deploy-simple:
+    name: Deploy crawl-news (Cloud Functions)
+    runs-on: ubuntu-latest
+    environment: deploy
+    if: ${{ inputs.deploy_target == 'simple' || inputs.deploy_target == 'all' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy crawl-news
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
+        run: sh deploy/deploy.sh
+
+      - name: Setup Cloud Scheduler
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
+        run: sh deploy/setup_scheduler.sh
+
+  deploy-browser:
+    name: Deploy crawl-news-browser (Cloud Run)
+    runs-on: ubuntu-latest
+    environment: deploy
+    if: ${{ inputs.deploy_target == 'browser' || inputs.deploy_target == 'all' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy crawl-news-browser
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.GCP_REGION }}
+        run: sh deploy/deploy_cloudrun_browser.sh

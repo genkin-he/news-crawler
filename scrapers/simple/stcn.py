@@ -9,6 +9,7 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from scrapers.simple.base_simple_scraper import BaseSimpleScraper
+from scrapers.simple.http_client import get as _get, post as _post
 
 # 带上 X-Requested-With 后同一 URL 返回 JSON 而非 HTML
 STCN_LIST_URL = "https://www.stcn.com/article/list.html?type=kx"
@@ -29,7 +30,7 @@ class StcnScraper(BaseSimpleScraper):
     def _run_impl(self):
         try:
             self.util.info("开始爬取 STCN 快讯...")
-            response = requests.get(STCN_LIST_URL, headers=HEADERS, timeout=15)
+            response = _get(STCN_LIST_URL, headers=HEADERS, timeout=15)
             response.raise_for_status()
             json_data = response.json()
             articles_data = json_data.get("data", [])

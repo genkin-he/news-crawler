@@ -9,6 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from scrapers.simple.base_simple_scraper import BaseSimpleScraper
+from scrapers.simple.http_client import get as _get, post as _post
 
 headers = {
     "accept": 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -29,7 +30,7 @@ class APNewsScraper(BaseSimpleScraper):
         self.util.info(f"link: {link}")
 
         try:
-            response = requests.get(link, headers=headers, timeout=15)
+            response = _get(link, headers=headers, timeout=15)
             if response.status_code == 200:
                 response.encoding = 'utf-8'
                 resp = response.text
@@ -78,7 +79,7 @@ class APNewsScraper(BaseSimpleScraper):
             self.util.info("开始爬取 AP News...")
             new_articles = []
 
-            response = requests.get(self.target_url, headers=headers, timeout=15)
+            response = _get(self.target_url, headers=headers, timeout=15)
             if response.status_code == 200:
                 response.encoding = 'utf-8'
                 body = response.text

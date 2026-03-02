@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from scrapers.simple.base_simple_scraper import BaseSimpleScraper
+from scrapers.simple.http_client import get as _get, post as _post
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
@@ -28,7 +29,7 @@ class CoinliveScraper(BaseSimpleScraper):
             self.util.info("开始爬取 CoinLive...")
             new_articles = []
 
-            response = requests.get(self.api_url, headers=headers, timeout=15)
+            response = _get(self.api_url, headers=headers, timeout=15)
             if response.status_code == 200:
                 body = response.json()
                 posts = body.get("data", {}).get("list", [])

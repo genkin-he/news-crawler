@@ -12,7 +12,7 @@ PROJECT_ID="${GCP_PROJECT_ID:-your-project-id}"
 REGION="${GCP_REGION:-us-central1}"
 JOB_NAME="news-crawler-job"
 FUNCTION_NAME="crawl-news"
-SCHEDULE="*/10 * * * *"  # 每10分钟执行一次
+SCHEDULE="*/5 * * * *"  # 每x分钟执行一次
 TIMEZONE="Asia/Shanghai"
 
 echo ""
@@ -20,7 +20,7 @@ echo "配置信息:"
 echo "  项目ID: $PROJECT_ID"
 echo "  区域: $REGION"
 echo "  任务名: $JOB_NAME"
-echo "  执行频率: $SCHEDULE (每10分钟)"
+echo "  执行频率: $SCHEDULE (每x分钟)"
 echo "  时区: $TIMEZONE"
 echo ""
 

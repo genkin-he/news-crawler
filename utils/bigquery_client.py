@@ -138,6 +138,41 @@ class BigQueryClient:
             self._log_error(f"获取最新链接时出错 [{source}]: {e}")
             return []
 
+    def get_latest_urls_bulk(self, sources: List[str], limit_per_source: int = 20) -> Dict[str, List[str]]:
+        """
+        一次 SQL 按多个新闻源拉取各自最新 limit_per_source 条 link，用于初始化内存缓存。
+        返回 { source: [link, ...], ... }。
+        """
+        if not sources:
+            return {}
+        query = f"""
+            WITH ranked AS (
+                SELECT source, link,
+                       ROW_NUMBER() OVER (PARTITION BY source ORDER BY crawled_at DESC) AS rn
+                FROM `{self.table_ref}`
+                WHERE source IN UNNEST(@sources)
+                  AND DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+            )
+            SELECT source, link
+            FROM ranked
+            WHERE rn <= @limit
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ArrayQueryParameter("sources", "STRING", sources),
+                bigquery.ScalarQueryParameter("limit", "INT64", limit_per_source),
+            ]
+        )
+        try:
+            query_job = self.client.query(query, job_config=job_config)
+            out: Dict[str, List[str]] = {s: [] for s in sources}
+            for row in query_job.result():
+                out.setdefault(row.source, []).append(row.link)
+            return out
+        except Exception as e:
+            self._log_error(f"批量获取最新链接时出错: {e}")
+            return {s: [] for s in sources}
+
     def link_exists(self, link: str, source: Optional[str] = None) -> bool:
         """
         检查链接是否已存在。若已通过 set_link_cache 注入缓存，则仅查内存；否则查 BigQuery。
