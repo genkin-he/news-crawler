@@ -116,37 +116,23 @@ FUNCTION_URL=$(gcloud functions describe crawl-news \
 echo "函数 URL: $FUNCTION_URL"
 ```
 
-### 2. 测试单个爬虫
+### 2. 测试简单爬虫（Cloud Functions）
 ```bash
+# sources: 逗号分隔的 source 名，或 "all" 表示全部
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch"}' \
+  -d '{"sources": "all"}' \
   $FUNCTION_URL
 ```
 
-**期望输出**：
-```json
-{
-  "success": true,
-  "total_new_articles": 3,
-  "total_skipped": 0,
-  "total_errors": 0,
-  "results": {
-    "techcrunch": {
-      "new_articles": 3,
-      "skipped": 0,
-      "errors": 0
-    }
-  },
-  "errors": []
-}
-```
+**期望**：返回 JSON，含 `success`、`total_new_articles`、`results`（各 source 的统计）、`errors`。
 
-### 3. 测试多个爬虫
+### 3. 测试指定 source
 ```bash
+# 仅跑某几个 source（具体名称见 main.py 中 SCRAPER_REGISTRY）
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch,apnews,coinlive"}' \
+  -d '{"sources": "source1,source2"}' \
   $FUNCTION_URL
 ```
 
@@ -160,16 +146,7 @@ bq query --use_legacy_sql=false \
    GROUP BY source"
 ```
 
-**期望输出**：
-```
-+------------+-------+
-|   source   | count |
-+------------+-------+
-| techcrunch |     3 |
-| apnews     |     3 |
-| coinlive   |     4 |
-+------------+-------+
-```
+**期望**：按 `source` 分组的条数，说明数据已写入。
 
 ### 5. 查看函数日志
 ```bash
@@ -181,9 +158,10 @@ gcloud logging read \
 
 ### 6. 测试无头浏览器爬虫（若已部署 Cloud Run）
 ```bash
-# 从 deploy_cloudrun_browser.sh 输出或控制台获取服务 URL，例如：
+# 从 deploy_cloudrun_browser.sh 输出或控制台获取服务 URL
+# sources: "all" 或逗号分隔；test: true 不写 BigQuery
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"sources": "stcn", "test": true}' \
+  -d '{"sources": "all", "test": true}' \
   https://crawl-news-browser-xxxxx-uc.a.run.app
 ```
 
@@ -319,6 +297,48 @@ gcloud scheduler jobs delete news-crawler-browser-job --location=$GCP_REGION 2>/
 # BigQuery 数据集（包含所有表）
 bq rm -r -f $GCP_PROJECT_ID:news_project
 ```
+
+---
+
+## 🔄 GitHub 持续集成部署
+
+推送到 `main` 分支时自动部署两个服务，无需本地执行 `make deploy` / `make deploy-browser`。
+
+### 方式一：GitHub Actions（推荐，可分开手动部署）
+
+1. **在仓库中已添加** `.github/workflows/deploy.yml`，**仅支持手动触发**，不会随 push 自动部署。
+
+2. **配置 GitHub Secrets**（Settings → Secrets and variables → Actions）：
+   - `GCP_PROJECT_ID`：GCP 项目 ID（如 `news-project-487409`）
+   - `GCP_SA_KEY`：服务账号密钥 JSON 的**完整内容**
+     - 在 GCP 控制台：IAM → 服务账号 → 创建密钥（JSON），复制文件内容粘贴到 Secret
+
+3. **权限**：该服务账号需具备：
+   - Cloud Functions 管理员（或至少部署权限）
+   - Cloud Run 管理员
+   - Cloud Build 编辑者（若用 --source 构建）
+   - 或项目角色 `roles/owner`（仅建议测试用）
+
+4. **手动部署**：在 GitHub 仓库 **Actions** 页选择 “Deploy to GCP” → 点击 **“Run workflow”**，在 **“部署目标”** 下拉框中选择：
+   - **simple**：仅部署 crawl-news（Cloud Functions）
+   - **browser**：仅部署 crawl-news-browser（Cloud Run）
+   - **all**：两个服务都部署
+
+5. **（可选）仅允许指定人完成部署**：workflow 的部署 job 使用了 `environment: deploy`。
+   - **必须先**在仓库 **Settings** → **Environments** 中点击 **New environment**，名称填 **deploy** 并保存（否则 workflow 会因找不到环境而报错）。
+   - 若希望**只有指定人（如项目所有者）能完成部署**：在 **deploy** 环境的 **Deployment protection rules** 中勾选 **Required reviewers**，添加允许审批的账号。之后每次有人点 “Run workflow”，部署 job 会处于 “Waiting for approval”，只有被设为 Required reviewers 的成员在 Actions 页批准后才会真正执行。
+   - 若不需要审批：创建 **deploy** 环境后不勾选 Required reviewers 即可，有写权限的人触发后会直接部署。
+
+### 方式二：控制台「连接仓库」（仅 Cloud Run 服务）
+
+若**只**希望 **crawl-news-browser** 自动部署，可用 GCP 控制台：
+
+1. 在 Cloud Run 中选中服务 `crawl-news-browser`
+2. 点击 **「连接仓库」**，选择 GitHub 仓库与分支
+3. 构建配置选择「Dockerfile」，路径填 `Dockerfile.firefox`
+4. 保存后，每次推送到该分支会自动构建并部署该服务
+
+注意：**crawl-news**（Cloud Functions）不能通过「连接仓库」配置，需继续用本地 `make deploy` 或上述 GitHub Actions 部署。
 
 ---
 

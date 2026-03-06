@@ -6,7 +6,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from scrapers.base_scraper import BaseScraper
+from scrapers.simple.base_simple_scraper import BaseSimpleScraper
+from scrapers.simple.http_client import get as _get, post as _post
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
@@ -15,7 +16,7 @@ headers = {
     "Referer": "https://www.coinlive.com/",
 }
 
-class CoinliveScraper(BaseScraper):
+class CoinliveScraper(BaseSimpleScraper):
     """CoinLive 加密货币新闻爬虫"""
 
     def __init__(self, bq_client):
@@ -23,18 +24,19 @@ class CoinliveScraper(BaseScraper):
         self.base_url = "https://www.coinlive.com/"
         self.api_url = "https://api.coinlive.com/api/v1/news-letter/list?page=1&size=10"
 
-    def run(self):
-        """执行爬虫"""
+    def _run_impl(self):
         try:
             self.util.info("开始爬取 CoinLive...")
             new_articles = []
 
-            response = requests.get(self.api_url, headers=headers, timeout=15)
+            response = _get(self.api_url, headers=headers, timeout=15)
             if response.status_code == 200:
                 body = response.json()
                 posts = body.get("data", {}).get("list", [])
 
                 for index, post in enumerate(posts):
+                    if getattr(self, "_timed_out", False):
+                        break
                     if index >= 4:
                         break
 
@@ -52,6 +54,7 @@ class CoinliveScraper(BaseScraper):
                             continue
 
                         if description:
+                            self.mark_link_as_processed(link)
                             new_articles.append({
                                 "id": str(article_id),
                                 "title": title,
@@ -61,6 +64,7 @@ class CoinliveScraper(BaseScraper):
                                 "pub_date": pub_date,
                                 "kind": 2,
                                 "language": "en",
+                                "source_name": "CoinLive",
                             })
 
                     except Exception as e:
@@ -69,7 +73,9 @@ class CoinliveScraper(BaseScraper):
                         continue
 
                 # 批量保存文章
-                if new_articles:
+                if getattr(self, "_timed_out", False):
+                    self.util.info("已超时，跳过写入")
+                elif new_articles:
                     self.save_articles(new_articles)
                     self.util.info(f"成功爬取 {len(new_articles)} 篇文章")
 

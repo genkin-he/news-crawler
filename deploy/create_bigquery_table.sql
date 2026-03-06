@@ -17,6 +17,7 @@ CREATE OR REPLACE TABLE `news_project.news_articles` (
   author STRING OPTIONS(description="作者"),
   pub_date TIMESTAMP NOT NULL OPTIONS(description="发布时间"),
   source STRING NOT NULL OPTIONS(description="新闻源"),
+  source_name STRING OPTIONS(description="新闻源显示名称"),
   kind INT64 OPTIONS(description="类型: 1=文章, 2=快讯"),
   language STRING OPTIONS(description="语言: en/zh/etc"),
   crawled_at TIMESTAMP NOT NULL OPTIONS(description="爬取时间"),

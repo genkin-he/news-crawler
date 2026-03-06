@@ -1,208 +1,142 @@
-# 新闻爬虫 Cloud Functions + BigQuery
+# News Crawler — Cloud Functions + BigQuery
 
-新闻爬虫 Google Cloud Functions + BigQuery 的项目。
+A **learning project** for crawling news, storing data in Google BigQuery, and running crawlers on Cloud Functions (simple) and Cloud Run (headless browser).
 
-## 项目特点
+> **Disclaimer:** This project is for **educational and learning purposes only**. If any content or use infringes your rights, please contact the author for **immediate removal**.
 
-- **无服务器架构**: 使用 Cloud Functions 按需执行爬虫
-- **数据持久化**: BigQuery 按日期分区存储，支持 SQL 查询
-- **高效去重**: 基于 BigQuery 分区查询的去重机制
-- **并发爬取**: 多个新闻源并发执行，提高效率
-- **定时触发**: Cloud Scheduler 每 10 分钟自动触发
-- **超低成本**: 预计每月仅 **$4-7**
+---
 
-## 技术栈
+## Features
 
-- **运行时**: Python 3.11
-- **计算**: Google Cloud Functions (Gen 2)
-- **数据库**: Google BigQuery（按日期分区）
-- **调度**: Google Cloud Scheduler
-- **依赖**: BeautifulSoup4, requests, google-cloud-bigquery
+- **Serverless**: Cloud Functions for on-demand runs
+- **Storage**: BigQuery with date partitioning and SQL access
+- **Deduplication**: In-memory link cache at startup + partition-aware queries
+- **Concurrency**: Multiple sources run in parallel
+- **Scheduling**: Cloud Scheduler (e.g. every 10–30 minutes)
+- **Low cost**: Roughly **$4–7/month** for the simple setup
 
-## 项目结构
+## Tech Stack
+
+- **Runtime**: Python 3.11
+- **Compute**: Google Cloud Functions (Gen 2), Cloud Run (browser)
+- **Database**: Google BigQuery (partitioned by date)
+- **Scheduling**: Google Cloud Scheduler
+- **Dependencies**: BeautifulSoup4, requests, google-cloud-bigquery; Playwright + Firefox for browser crawlers
+
+## Project Structure
 
 ```
 news-google/
-├── main.py                      # 双入口：crawl_news（简单）+ crawl_news_browser（无头浏览器）
-├── Makefile                     # 本地运行与部署（make run / deploy / deploy-browser）
-├── requirements.txt            # 简单爬虫依赖
-├── requirements-browser.txt    # 无头浏览器爬虫依赖（playwright 等）
-├── config.yaml                 # 配置文件（GCP、并发等）
+├── main.py                      # Dual entry: crawl_news (simple) + crawl_news_browser (headless)
+├── Makefile                     # Local run & deploy (make run / deploy / deploy-browser)
+├── requirements.txt             # Simple crawler deps
+├── requirements-browser.txt    # Headless browser deps (playwright, etc.)
+├── config.yaml                  # Config (GCP, concurrency)
 ├── scrapers/
 │   ├── base_scraper.py
-│   ├── simple/                 # 简单爬虫（requests/BeautifulSoup，无浏览器）
-│   │   ├── techcrunch.py
-│   │   ├── apnews.py
-│   │   └── coinlive.py
-│   └── browser/                # 无头浏览器爬虫（Playwright，仅 crawl_news_browser 使用）
-│       ├── base_browser_scraper.py
-│       ├── stcn.py
-│       ├── koreatimes.py
-│       └── __init__.py         # SCRAPER_REGISTRY_BROWSER
+│   ├── simple/                  # Simple crawlers (requests/BeautifulSoup, no browser) → Cloud Functions
+│   └── browser/                 # Headless browser crawlers (Playwright) → Cloud Run only
+│       └── __init__.py          # SCRAPER_REGISTRY_BROWSER
 ├── utils/
 └── deploy/
-    ├── deploy.sh               # 部署 crawl-news（简单）→ Cloud Functions
-    ├── deploy_cloudrun_browser.sh  # 无头浏览器爬虫 → Cloud Run（含 Scheduler 定时触发）
-    ├── setup_scheduler.sh       # 定时触发 crawl-news
+    ├── deploy.sh                # Deploy crawl-news (simple) → Cloud Functions
+    ├── deploy_cloudrun_browser.sh  # Browser crawler → Cloud Run (+ Scheduler)
+    ├── setup_scheduler.sh        # Schedule crawl-news
     └── create_bigquery_table.sql
-└── Dockerfile.firefox          # Cloud Run 无头浏览器镜像（仅 Firefox，体积小）
+└── Dockerfile.firefox           # Cloud Run image (Firefox only)
 ```
 
-**两个入口（依赖隔离）**
+**Two entry points (separate dependencies)**
 
-| 名称 | 入口 | 依赖 | 部署方式 |
-|------|------|------|----------|
-| 简单爬虫 | `crawl_news` | requirements.txt | Cloud Functions（`deploy.sh`） |
-| 无头浏览器爬虫 | `crawl_news_browser` | requirements-browser.txt + **浏览器二进制** | **Cloud Run**（`deploy_cloudrun_browser.sh`） |
+| Type              | Entry                 | Deps                         | Deploy target        |
+|-------------------|-----------------------|-----------------------------|----------------------|
+| Simple crawlers   | `crawl_news`         | requirements.txt            | Cloud Functions       |
+| Headless browser  | `crawl_news_browser` | requirements-browser + browser binary | Cloud Run (Dockerfile.firefox) |
 
-**重要**：无头浏览器爬虫依赖 Playwright 的**浏览器二进制**，需用 **Cloud Run + Dockerfile.firefox**（仅含 Firefox，体积小）部署。
+Headless crawlers need Playwright’s browser binary → deploy via **Cloud Run + Dockerfile.firefox**.
 
-## 快速开始
+## Quick Start
 
-### 1. 前置准备
+### 1. Prerequisites
 
-1. **安装 Google Cloud SDK**
-   ```bash
-   # macOS
-   brew install --cask google-cloud-sdk
+- Install [Google Cloud SDK](https://cloud.google.com/sdk) and log in:
+  ```bash
+  gcloud auth login
+  gcloud auth application-default login
+  ```
+- Set env and config:
+  ```bash
+  export GCP_PROJECT_ID="your-project-id"
+  export GCP_REGION="us-central1"
+  ```
+  Edit `config.yaml` and replace `your-project-id` with your GCP project ID.
 
-   # 登录
-   gcloud auth login
-   gcloud auth application-default login
-   ```
+### 2. Create BigQuery resources
 
-2. **设置环境变量**
-   ```bash
-   export GCP_PROJECT_ID="your-project-id"
-   export GCP_REGION="us-central1"
-   ```
-
-3. **修改配置文件**
-   编辑 `config.yaml`，替换 `your-project-id` 为您的 GCP 项目 ID
-
-### 2. 创建 GCP 资源
-
-1. **创建 BigQuery 数据集和表**
-   ```bash
-   bq query --use_legacy_sql=false < deploy/create_bigquery_table.sql
-   ```
-
-### 3. 部署
-
-**使用 Makefile（推荐）**
 ```bash
-export GCP_PROJECT_ID="your-project-id"
-make deploy              # 部署简单爬虫到 Cloud Functions
-make deploy-browser      # 部署无头浏览器爬虫到 Cloud Run + Scheduler
-make deploy-all         # 依次执行上述两者
+bq query --use_legacy_sql=false < deploy/create_bigquery_table.sql
 ```
 
-**或直接执行脚本**
+### 3. Deploy
+
+**Using Makefile (recommended)**
 ```bash
-cd /path/to/news-google
-sh deploy/deploy.sh                    # 简单爬虫 → Cloud Functions
-sh deploy/deploy_cloudrun_browser.sh  # 无头浏览器 → Cloud Run（含每 30 分钟定时触发）
+make deploy              # Simple crawler → Cloud Functions
+make deploy-browser      # Browser crawler → Cloud Run + Scheduler
+make deploy-all         # Both
 ```
 
-**配置定时任务（可选）**
-- 简单爬虫每 10 分钟：`./deploy/setup_scheduler.sh`
-- 无头浏览器爬虫：`deploy_cloudrun_browser.sh` 部署完成后会自动配置每 30 分钟触发
-
-### 4. 测试
-
-**手动触发测试**
+**Or run scripts directly**
 ```bash
-# 测试单个新闻源
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"sources": "techcrunch"}' \
-  https://REGION-PROJECT.cloudfunctions.net/crawl-news
+sh deploy/deploy.sh
+sh deploy/deploy_cloudrun_browser.sh
+```
 
-# 测试所有新闻源
+- Simple crawler schedule (e.g. every 10 min): `./deploy/setup_scheduler.sh`
+- Browser crawler: Scheduler is set up by `deploy_cloudrun_browser.sh` (e.g. every 30 min).
+
+### 4. Test
+
+**Trigger via HTTP**
+```bash
 curl -X POST -H "Content-Type: application/json" \
   -d '{"sources": "all"}' \
   https://REGION-PROJECT.cloudfunctions.net/crawl-news
 ```
 
-**本地测试**
+**Local run** (from repo root; GCP auth required for non-test)
 
-需在项目根目录执行，并已配置 GCP 认证（`gcloud auth application-default login`）。默认使用 **uv**，也可用 `make run PYTHON=python`。
+- Simple crawlers: `make run` or `uv run python main.py`
+- Browser crawlers: `make install-browser` once, then `make run-browser` or `uv run python main.py browser`  
+  Local default is `test=True` (no BigQuery writes).
 
-**简单爬虫**（techcrunch / apnews / coinlive）
-```bash
-make run
-# 或
-uv run python main.py
-# 或
-pip install -r requirements.txt && python main.py
-```
+### 5. Query data
 
-**无头浏览器爬虫**（stcn / koreatimes，需 Playwright + Firefox）
-```bash
-make install-browser   # 首次：安装 requirements-browser.txt + playwright install firefox
-make run-browser       # 运行（sources=all, test=True，不写 BigQuery）
-# 或
-uv run python main.py browser
-```
+Table is partitioned by `pub_date`; queries must include a `pub_date` filter.
 
-- `make run`：简单爬虫，会请求 BigQuery（非 test 时写入）。
-- `make run-browser`：无头浏览器爬虫；本地默认 `test=True` 不写 BigQuery。
-
-### 5. 查看数据
-
-**查询 BigQuery 数据**（表为分区表，查询需带 `pub_date` 条件）
 ```sql
--- 最近爬取的文章（替换为你的 project.dataset）
 SELECT title, link, source, pub_date, crawled_at
-FROM `你的项目ID.news_project.news_articles`
+FROM `YOUR_PROJECT_ID.news_project.news_articles`
 WHERE DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
 ORDER BY crawled_at DESC
 LIMIT 20;
 
--- 各来源统计
 SELECT source, COUNT(*) AS cnt
-FROM `你的项目ID.news_project.news_articles`
+FROM `YOUR_PROJECT_ID.news_project.news_articles`
 WHERE DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
 GROUP BY source
 ORDER BY cnt DESC;
-
--- 查询特定新闻源
-SELECT title, link, pub_date
-FROM `你的项目ID.news_project.news_articles`
-WHERE source = 'techcrunch'
-  AND DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)
-ORDER BY pub_date DESC
-LIMIT 20;
 ```
 
-**查看 Cloud Functions 日志**
-```bash
-gcloud logging read \
-  "resource.type=cloud_function AND resource.labels.function_name=crawl-news" \
-  --limit=50 --format=json
-```
+## Adding a new crawler
 
-## 支持的新闻源
+- **Simple**: Add a module under `scrapers/simple/`, extend `BaseScraper`, register in `main.py` → `SCRAPER_REGISTRY`, then `make deploy`.
+- **Browser**: Add a module under `scrapers/browser/`, extend `BaseBrowserScraper` and implement `_run_impl()`, register in `scrapers/browser/__init__.py` → `SCRAPER_REGISTRY_BROWSER`, then `make deploy-browser`.
 
-**简单爬虫**（Cloud Functions，`crawl_news`）
-- ✅ techcrunch - TechCrunch 科技新闻
-- ✅ apnews - AP News 财经市场
-- ✅ coinlive - CoinLive 加密货币新闻
+Example (simple):
 
-**无头浏览器爬虫**（Cloud Run，`crawl_news_browser`）
-- ✅ stcn - 证券时报快讯
-- ✅ koreatimes - Korea Times 加密货币频道
-
-**图例**: ✅ 已实现
-
-## 开发指南
-
-### 添加新爬虫
-
-- **简单爬虫**（requests/BeautifulSoup）：在 `scrapers/simple/` 下新建模块，继承 `BaseScraper`，在 `main.py` 的 `SCRAPER_REGISTRY` 中注册。
-- **无头浏览器爬虫**（Playwright）：在 `scrapers/browser/` 下新建模块，继承 `BaseBrowserScraper` 并实现 `_run_impl()`，在 `scrapers/browser/__init__.py` 的 `SCRAPER_REGISTRY_BROWSER` 中注册。
-
-**简单爬虫示例**（`scrapers/simple/example.py`）:
 ```python
+# scrapers/simple/example.py
 from scrapers.base_scraper import BaseScraper
 
 class ExampleScraper(BaseScraper):
@@ -211,50 +145,28 @@ class ExampleScraper(BaseScraper):
 
     def run(self):
         new_articles = []
-        # ... 爬取数据，用 self.is_link_exists(link) 去重 ...
+        # ... fetch data, use self.is_link_exists(link) for dedup ...
         if new_articles:
             self.save_articles(new_articles)
         return self.get_stats()
 ```
 
-在 `main.py` 中注册:
-```python
-from scrapers.simple.example import ExampleScraper
-SCRAPER_REGISTRY = { ..., 'example': ExampleScraper }
-```
+Register in `main.py`: `from scrapers.simple.example import ExampleScraper` and add to `SCRAPER_REGISTRY`.
 
-### 迁移现有爬虫
+## Cost (approx.)
 
-参考 `/Users/genkin/coding/gocode/news/news/scripts/` 中的现有爬虫代码：
+- Cloud Functions: ~$3–5/month
+- BigQuery: ~$1–2/month  
+- **Total**: about **$4–7/month** for the simple pipeline. Cloud Run adds cost based on usage.
 
-1. 复制核心爬取逻辑（`run()` 和 `get_detail()` 函数）
-2. 替换 `util.history_posts()` 为 `self.is_link_exists()`
-3. 替换 `util.write_json_to_file()` 为 `self.save_articles()`
-4. 保持 headers 和 URL 不变
+## Deduplication
 
-## 成本估算 💰
+- At startup, latest 20 URLs per source are loaded into memory; link existence checks use this cache to reduce BigQuery calls.
+- Table is partitioned by `pub_date`; all queries must include a partition filter.
 
-- **Cloud Functions**: ~$3-5/月（每10分钟触发，512MB内存）
-- **BigQuery**: ~$1-2/月（存储+查询）
-- **总计**: 约 **$4-7/月** ✨
+## Monitoring
 
-### 去重说明
-
-- 启动时按源拉取最新 20 条 URL 入内存，存在性检查走内存，减少 BigQuery 查询
-- 表按 `pub_date` 分区，需带分区条件的查询
-- 简单爬虫与无头浏览器爬虫分别部署（Cloud Functions / Cloud Run），互不干扰
-
-### 进一步优化建议
-
-1. 减少触发频率: 15分钟或30分钟一次（降低 Cloud Functions 成本）
-2. 使用 Cloud Run 替代 Cloud Functions（按请求计费，可能更便宜）
-3. 调整 BigQuery 分区过期时间（默认 365 天，可缩短至 90 天）
-
-## 监控与告警
-
-**查看统计信息**
 ```bash
-# 当日各源爬取条数（表按 pub_date 分区，查询需带分区条件）
 bq query --use_legacy_sql=false \
   "SELECT source, COUNT(*) as count
    FROM \`YOUR_PROJECT_ID.news_project.news_articles\`
@@ -262,37 +174,17 @@ bq query --use_legacy_sql=false \
    GROUP BY source"
 ```
 
-**设置告警**（可选）
-- Cloud Monitoring: 监控函数执行时间和错误率
-- BigQuery: 监控每日新增数据量
-- Slack/Email: 接收异常告警
+## Troubleshooting
 
-## 故障排查
+- **BigQuery errors**: Check table exists (`bq show news_project.news_articles`) and service account permissions.
+- **Timeouts**: Increase function timeout (e.g. `--timeout=540s`) or reduce `max_workers` in `config.yaml`.
 
-### 去重性能问题
-- BigQuery 查询已按日期分区优化，仅查询最近 7 天数据
-- 对于每 10 分钟触发一次的场景，当前性能已足够
+## References
 
-### BigQuery 写入失败
-- 检查表是否存在: `bq show news_project.news_articles`
-- 检查服务账号权限
-- 查看 Cloud Functions 日志
-
-### 爬虫超时
-- 增加 Cloud Functions 超时时间: `--timeout=540s`
-- 减少并发爬虫数量: 修改 `config.yaml` 中的 `max_workers`
-
-## 参考资料
-
-- [Google Cloud Functions 文档](https://cloud.google.com/functions/docs)
-- [BigQuery 文档](https://cloud.google.com/bigquery/docs)
-- [Cloud Scheduler 文档](https://cloud.google.com/scheduler/docs)
-- [原始项目](https://github.com/genkin-he/news)
+- [Cloud Functions](https://cloud.google.com/functions/docs)
+- [BigQuery](https://cloud.google.com/bigquery/docs)
+- [Cloud Scheduler](https://cloud.google.com/scheduler/docs)
 
 ## License
 
-MIT License
-
-## 作者
-
-从 [genkin-he/news](https://github.com/genkin-he/news) 迁移而来
+MIT License. This is a learning project; if you believe any use infringes your rights, please contact the author for immediate removal.

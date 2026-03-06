@@ -1,13 +1,15 @@
 # -*- coding: UTF-8 -*-
 """无头浏览器爬虫基类：统一运行超时，子类实现 _run_impl()"""
-import sys
+
 import os
+import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from scrapers.base_scraper import BaseScraper
-from utils.bigquery_client import BigQueryClient
 
 
 class BaseBrowserScraper(BaseScraper):

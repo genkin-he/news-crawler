@@ -1,14 +1,16 @@
 # -*- coding: UTF-8 -*-
 """BigQuery 客户端，封装 BigQuery 读写操作"""
+
 import hashlib
-import os
 import json
+import os
 import traceback
 from datetime import datetime
-from typing import List, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional
+
+import yaml
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
-import yaml
 
 if TYPE_CHECKING:
     from utils.spider_util import SpiderUtil
@@ -17,7 +19,9 @@ if TYPE_CHECKING:
 class BigQueryClient:
     """BigQuery 客户端类"""
 
-    def __init__(self, config_path='config.yaml', log_util: Optional["SpiderUtil"] = None):
+    def __init__(
+        self, config_path="config.yaml", log_util: Optional["SpiderUtil"] = None
+    ):
         """
         初始化 BigQuery 客户端
 
@@ -27,19 +31,19 @@ class BigQueryClient:
         """
         self._log = log_util
         # 加载配置
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
-        self.bq_config = config['bigquery']
-        self.project_id = self.bq_config['project_id']
-        self.dataset_id = self.bq_config['dataset']
-        self.table_id = self.bq_config['table']
-        self.location = self.bq_config.get('location', 'US')
+        self.bq_config = config["bigquery"]
+        self.project_id = self.bq_config["project_id"]
+        self.dataset_id = self.bq_config["dataset"]
+        self.table_id = self.bq_config["table"]
+        self.location = self.bq_config.get("location", "US")
 
         # 初始化 BigQuery 客户端
         self.client = bigquery.Client(project=self.project_id, location=self.location)
         self.table_ref = f"{self.project_id}.{self.dataset_id}.{self.table_id}"
-        self._link_cache = None  # Optional[Dict[str, set]]: source -> set of url，由调用方在启动时注入
+        self._link_cache = None  # Optional[set]: 全局 link 集合，不按源区分
 
         # 确保数据集和表存在
         self._ensure_dataset_exists()
@@ -84,6 +88,7 @@ class BigQueryClient:
                 bigquery.SchemaField("author", "STRING"),
                 bigquery.SchemaField("pub_date", "TIMESTAMP", mode="REQUIRED"),
                 bigquery.SchemaField("source", "STRING", mode="REQUIRED"),
+                bigquery.SchemaField("source_name", "STRING"),
                 bigquery.SchemaField("kind", "INTEGER"),
                 bigquery.SchemaField("language", "STRING"),
                 bigquery.SchemaField("crawled_at", "TIMESTAMP", mode="REQUIRED"),
@@ -96,23 +101,25 @@ class BigQueryClient:
             table.time_partitioning = bigquery.TimePartitioning(
                 type_=bigquery.TimePartitioningType.DAY,
                 field="pub_date",
-                expiration_ms=365 * 24 * 60 * 60 * 1000  # 365天过期
+                expiration_ms=365 * 24 * 60 * 60 * 1000,  # 365天过期
             )
 
             # 配置聚簇
             table.clustering_fields = ["source", "language"]
 
             table = self.client.create_table(table)
-            self._log_info(f"已创建表 {table.project}.{table.dataset_id}.{table.table_id}")
+            self._log_info(
+                f"已创建表 {table.project}.{table.dataset_id}.{table.table_id}"
+            )
 
-    def set_link_cache(self, cache: Dict[str, set]) -> None:
+    def set_link_cache(self, cache: set) -> None:
         """
-        设置按新闻源的链接内存缓存。设置后 link_exists 仅查内存，不再打 BigQuery。
-        调用方应在启动时按源拉取最新 N 条 URL 注入此 cache。
+        设置全局链接内存缓存。设置后 link_exists 仅查内存，不再打 BigQuery。
+        调用方应在启动时拉取最新 N 条 URL 注入此 cache。
         """
         self._link_cache = cache
 
-    def get_latest_urls(self, source: str, limit: int = 20) -> List[str]:
+    def get_latest_urls(self, source: str, limit: int = 200) -> List[str]:
         """
         按新闻源查出最新写入的 limit 条 link（ORDER BY crawled_at DESC），用于初始化内存缓存。
         """
@@ -137,12 +144,98 @@ class BigQueryClient:
             self._log_error(f"获取最新链接时出错 [{source}]: {e}")
             return []
 
+    def add_to_link_cache(self, link: str, source: str) -> None:
+        """
+        立即将链接添加到内存缓存。
+        应在决定爬取某个链接后立即调用，这样同一批次的后续链接检查就能命中缓存。
+
+        Args:
+            link: 文章链接
+            source: 新闻源（兼容参数，实际不使用）
+        """
+        if self._link_cache is not None:
+            self._link_cache.add(link)
+
+    def get_latest_urls_bulk(
+        self,
+        sources: List[str],
+        limit_per_source: int = 20,
+        source_limits: Optional[Dict[str, int]] = None,
+    ) -> List[str]:
+        """
+        一次 SQL 按多个新闻源拉取各自最新 N 条 link，用于初始化内存缓存。
+        返回全局 link 列表（不按源区分，避免跨源重复）。
+
+        Args:
+            sources: 新闻源列表
+            limit_per_source: 默认每个源的限制
+            source_limits: 特定源的限制，如 {"bloomberg": 50, "coindesk": "all"}
+                         值为 "all" 表示拉取该源所有链接（7天内）
+        """
+        if not sources:
+            return {}
+
+        source_limits = source_limits or {}
+
+        # 构建 CASE WHEN 语句，"all" 源使用超大值（999999）
+        case_conditions = []
+        for source in sources:
+            limit = source_limits.get(source, limit_per_source)
+            if limit == "all":
+                case_conditions.append(f"WHEN source = '{source}' THEN 999999")
+            else:
+                case_conditions.append(f"WHEN source = '{source}' THEN {limit}")
+
+        case_statement = "\n                ".join(case_conditions)
+
+        # 单次扫描，使用 CASE WHEN 处理所有源
+        query = f"""
+            WITH source_limits AS (
+                SELECT source,
+                       CASE
+                           {case_statement}
+                           ELSE {limit_per_source}
+                       END AS max_limit
+                FROM (SELECT DISTINCT source FROM `{self.table_ref}`
+                      WHERE DATE(pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+                        AND source IN UNNEST(@sources))
+            ),
+            ranked AS (
+                SELECT t.source, t.link,
+                       ROW_NUMBER() OVER (PARTITION BY t.source ORDER BY t.crawled_at DESC) AS rn
+                FROM `{self.table_ref}` t
+                WHERE t.source IN UNNEST(@sources)
+                  AND DATE(t.pub_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+            )
+            SELECT r.source, r.link
+            FROM ranked r
+            JOIN source_limits sl ON r.source = sl.source
+            WHERE r.rn <= sl.max_limit
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ArrayQueryParameter("sources", "STRING", sources),
+            ]
+        )
+        try:
+            query_job = self.client.query(query, job_config=job_config)
+            links = []
+            seen = set()
+            for row in query_job.result():
+                if row.link not in seen:
+                    links.append(row.link)
+                    seen.add(row.link)
+            return links
+        except Exception as e:
+            self._log_error(f"批量获取最新链接时出错: {e}")
+            return []
+
     def link_exists(self, link: str, source: Optional[str] = None) -> bool:
         """
         检查链接是否已存在。若已通过 set_link_cache 注入缓存，则仅查内存；否则查 BigQuery。
         """
-        if self._link_cache is not None and source is not None:
-            return link in self._link_cache.get(source, set())
+        if self._link_cache is not None:
+            return link in self._link_cache
 
         # 未使用缓存时的回退：查 BigQuery
         query_parameters = [
@@ -198,10 +291,10 @@ class BigQueryClient:
         rows_to_insert = []
         for article in articles:
             # 生成文章 ID (MD5(link))
-            article_id = hashlib.md5(article['link'].encode()).hexdigest()
+            article_id = hashlib.md5(article["link"].encode()).hexdigest()
 
             # 处理发布时间
-            pub_date = article.get('pub_date')
+            pub_date = article.get("pub_date")
             if isinstance(pub_date, str):
                 # 尝试解析时间字符串
                 try:
@@ -211,18 +304,22 @@ class BigQueryClient:
             elif not isinstance(pub_date, datetime):
                 pub_date = datetime.now()
 
+            source = article.get("source", "")
             row = {
                 "id": article_id,
-                "title": article.get('title', ''),
-                "description": article.get('description', ''),
-                "link": article['link'],
-                "author": article.get('author', ''),
+                "title": article.get("title", ""),
+                "description": article.get("description", ""),
+                "link": article["link"],
+                "author": article.get("author", ""),
                 "pub_date": pub_date.isoformat(),
-                "source": article.get('source', ''),
-                "kind": article.get('kind', 1),
-                "language": article.get('language', 'en'),
+                "source": source,
+                "source_name": article.get("source_name") or source,
+                "kind": article.get("kind", 1),
+                "language": article.get("language", "en"),
                 "crawled_at": datetime.now().isoformat(),
-                "metadata": json.dumps(article.get('metadata', {}))  # JSON 字段需要序列化为字符串
+                "metadata": json.dumps(
+                    article.get("metadata", {})
+                ),  # JSON 字段需要序列化为字符串
             }
             rows_to_insert.append(row)
 
@@ -232,17 +329,14 @@ class BigQueryClient:
             if errors:
                 self._log_error(f"插入 BigQuery 时出错 ({len(errors)} 个错误):")
                 for i, error in enumerate(errors):
-                    self._log_error(f"  错误 {i+1}: {error}")
+                    self._log_error(f"  错误 {i + 1}: {error}")
                 if rows_to_insert:
                     self._log_error(f"  第一条数据示例: {rows_to_insert[0]}")
                 return False
             else:
                 self._log_info(f"成功插入 {len(rows_to_insert)} 条记录到 BigQuery")
-                if self._link_cache is not None and rows_to_insert:
-                    source = rows_to_insert[0].get("source")
-                    if source and source in self._link_cache:
-                        for row in rows_to_insert:
-                            self._link_cache[source].add(row["link"])
+                # 注意：不在这里更新 link_cache，因为应该在 append 到 new_articles 时就添加
+                # 这样同一批次的后续链接检查就能命中缓存
                 return True
         except Exception as e:
             self._log_error(f"批量插入失败 (异常): {e}")
@@ -328,8 +422,8 @@ class BigQueryClient:
             stats = {}
             for row in results:
                 stats[row.source] = {
-                    'total_articles': row.total_articles,
-                    'days_with_data': row.days_with_data
+                    "total_articles": row.total_articles,
+                    "days_with_data": row.days_with_data,
                 }
 
             return stats
