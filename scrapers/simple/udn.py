@@ -77,7 +77,7 @@ class UdnScraper(BaseSimpleScraper):
                         "author": "",
                         "pub_date": self.util.current_time_string(),
                         "kind": 1,
-                        "language": "zh-TW",
+                        "language": "zh-HK",
                         "source_name": "台湾经济日报",
                     })
 

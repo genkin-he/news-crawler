@@ -63,7 +63,7 @@ class TechnewsScraper(BaseSimpleScraper):
                     "author": "",
                     "pub_date": self.util.current_time_string(),
                     "kind": 1,
-                    "language": "zh-TW",
+                    "language": "zh-HK",
                     "source_name": "科技新报",
                 })
             if not getattr(self, "_timed_out", False) and new_articles:
