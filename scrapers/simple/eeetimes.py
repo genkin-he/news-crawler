@@ -26,7 +26,7 @@ ARTICLE_URL_RE = re.compile(
     r"^https://www\.eetimes\.com/(?!category/)[^/]+/?$",
     re.I,
 )
-MAX_ARTICLES_PER_RUN = 10
+MAX_ARTICLES = 3
 REQUEST_TIMEOUT = 25
 # 优先用 RSS（单次请求），列表页常超时
 FEED_URL = "https://www.eetimes.com/category/news-analysis/feed/"
@@ -95,8 +95,6 @@ BODY_SELECTORS = [
 class EetimesScraper(BaseSimpleScraper):
     """EE Times 爬虫 — 解析 breaking-news / news 列表页 HTML，列表超时时回退 RSS"""
 
-    RUN_TIMEOUT = 90  # 列表页常较慢，给足时间并允许 RSS 回退
-
     def __init__(self, bq_client):
         super().__init__("eeetimes", bq_client)
 
@@ -144,7 +142,7 @@ class EetimesScraper(BaseSimpleScraper):
                             feed_soup = BeautifulSoup(resp.text, "lxml-xml")
                         else:
                             feed_soup = BeautifulSoup(resp.text, "lxml")
-                        for item in feed_soup.select("item")[:MAX_ARTICLES_PER_RUN]:
+                        for item in feed_soup.select("item")[:MAX_ARTICLES]:
                             link_el = item.find("link")
                             if link_el is None:
                                 continue
@@ -179,7 +177,7 @@ class EetimesScraper(BaseSimpleScraper):
                         self.util.error(f"列表页失败 {list_url}: {e}")
                         continue
 
-            for link, value in list(collected.items())[:MAX_ARTICLES_PER_RUN]:
+            for link, value in list(collected.items())[:MAX_ARTICLES]:
                 if getattr(self, "_timed_out", False):
                     break
                 if self.is_link_exists(link):

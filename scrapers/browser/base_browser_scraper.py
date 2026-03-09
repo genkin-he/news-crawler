@@ -15,7 +15,7 @@ from scrapers.base_scraper import BaseScraper
 class BaseBrowserScraper(BaseScraper):
     """浏览器爬虫基类：run() 带最大超时，默认 30 秒"""
 
-    RUN_TIMEOUT = 60  # 单次运行最大秒数，子类可覆盖
+    RUN_TIMEOUT = 120  # 单次运行最大秒数，子类可覆盖
 
     def _run_impl(self):
         """实际爬取逻辑，子类实现。返回 get_stats() 的字典。"""

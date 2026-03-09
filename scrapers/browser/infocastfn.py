@@ -25,8 +25,6 @@ DETAIL_TIMEOUT_MS = 25000
 class InfocastfnScraper(BaseBrowserScraper):
     """Infocast FN 浏览器版：Playwright 发列表 POST（带浏览器会话），详情页取 #newsBody"""
 
-    RUN_TIMEOUT = 120
-
     def __init__(self, bq_client):
         super().__init__("infocastfn", bq_client)
 

@@ -18,8 +18,7 @@ HEADERS = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
 }
 RSS_URL = "https://www.datacenterdynamics.com/en/rss/news"
-MAX_ARTICLES = 10
-
+MAX_ARTICLES = 3
 
 def _text_from_tag(tag) -> str:
     if tag is None:
@@ -54,8 +53,6 @@ def _fetch_rss_items():
 
 class DatacenterdynamicsScraper(BaseBrowserScraper):
     """Data Center Dynamics 浏览器版：RSS 取列表，Playwright 打开详情页取 div.block-text 完整正文"""
-
-    RUN_TIMEOUT = 120
 
     def __init__(self, bq_client):
         super().__init__("datacenterdynamics", bq_client)

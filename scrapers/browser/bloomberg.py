@@ -13,8 +13,7 @@ from scrapers.browser.base_browser_scraper import BaseBrowserScraper
 
 BASE_URL = "https://www.bloomberg.com"
 LIST_API = "https://www.bloomberg.com/lineup-next/api/paginate?id=archive_story_list&page=phx-markets&variation=archive&type=lineup_content"
-MAX_ARTICLES = 4
-
+MAX_ARTICLES = 2
 
 def _parse_next_data_body(html: str) -> str:
     """从详情页 HTML 中解析 __NEXT_DATA__ 并提取正文 HTML。与 simple 版逻辑一致。"""
@@ -70,8 +69,6 @@ def _parse_next_data_body(html: str) -> str:
 class BloombergScraper(BaseBrowserScraper):
     """Bloomberg 浏览器版：Playwright 请求列表 API（带浏览器会话），详情页取 __NEXT_DATA__"""
 
-    RUN_TIMEOUT = 120
-
     def __init__(self, bq_client):
         super().__init__("bloomberg", bq_client)
 
@@ -116,7 +113,22 @@ class BloombergScraper(BaseBrowserScraper):
                             f"Bloomberg 列表 API 失败: HTTP {resp.status if resp else 'none'}"
                         )
                         return self.get_stats()
-                    body = resp.body().decode("utf-8")
+                    try:
+                        body = resp.body().decode("utf-8")
+                    except Exception as _e:
+                        # Firefox 对部分响应 resp.body() 会报 Protocol error (NS_ERROR_FAILURE)，改用页面内 fetch 取体
+                        self.util.info(f"resp.body() 不可用 ({_e})，改用 fetch 拉取列表 API")
+                        body = page.evaluate(
+                            """async (url) => {
+                                const r = await fetch(url);
+                                if (!r.ok) return '';
+                                return await r.text();
+                            }""",
+                            LIST_API,
+                        )
+                    if not body:
+                        self.util.error("Bloomberg 列表 API 返回空")
+                        return self.get_stats()
                     data = json.loads(body)
                     items = data.get("archive_story_list", {}).get("items") or []
                     posts = []

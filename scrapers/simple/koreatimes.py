@@ -18,9 +18,8 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 ERROR_PAGE_MARKERS = ("Service Error", "unexpected server error", "Go to Homepage")
-MAX_ARTICLES = 10
+MAX_ARTICLES = 5
 REQUEST_TIMEOUT = 15
-
 
 def _is_error_page(html: str) -> bool:
     return any(m in html for m in ERROR_PAGE_MARKERS)
