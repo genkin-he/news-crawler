@@ -82,7 +82,7 @@ class C114Scraper(BaseSimpleScraper):
                         "pub_date": self.util.current_time_string(),
                         "kind": 1,
                         "language": "zh-CN",
-                        "source_name": "C114通信网",
+                        "source_name": "C114 通信网",
                     })
 
             if getattr(self, "_timed_out", False):
@@ -93,6 +93,6 @@ class C114Scraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"C114 爬虫执行失败: {str(e)}")
+            self.util.error(f"C114 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

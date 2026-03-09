@@ -79,7 +79,7 @@ class ThehillScraper(BaseSimpleScraper):
                 if title and link:
                     out.append({"title": title, "link": link, "description": description, "pub_date": pub_date})
         except Exception as e:
-            self.util.error(f"RSS 解析失败: {e}")
+            self.util.error(f"RSS 解析失败：{e}")
         return out
 
     def _run_impl(self):
@@ -89,7 +89,7 @@ class ThehillScraper(BaseSimpleScraper):
 
             rss_resp = _get(RSS_URL, headers={**HEADERS, "accept": "application/xml"}, timeout=15)
             if rss_resp.status_code != 200:
-                self.util.error(f"RSS 请求失败: {rss_resp.status_code}")
+                self.util.error(f"RSS 请求失败：{rss_resp.status_code}")
                 return self.get_stats()
             items = self._parse_rss(rss_resp.text)[:5]
 
@@ -128,6 +128,6 @@ class ThehillScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"The Hill 爬虫执行失败: {str(e)}")
+            self.util.error(f"The Hill 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

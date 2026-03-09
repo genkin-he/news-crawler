@@ -76,9 +76,9 @@ class RollingoutScraper(BaseSimpleScraper):
                         if link and title:
                             entries.append((link, title))
                 else:
-                    self.util.error(f"列表请求失败: HTTP {resp.status_code}")
+                    self.util.error(f"列表请求失败：HTTP {resp.status_code}")
             except Exception as e:
-                self.util.error(f"列表请求失败: {e}")
+                self.util.error(f"列表请求失败：{e}")
 
             if not entries:
                 try:
@@ -92,7 +92,7 @@ class RollingoutScraper(BaseSimpleScraper):
                         if entries:
                             self.util.info("已从 RSS 获取列表")
                 except Exception as e:
-                    self.util.error(f"RSS 回退失败: {e}")
+                    self.util.error(f"RSS 回退失败：{e}")
 
             if not entries:
                 return self.get_stats()
@@ -124,6 +124,6 @@ class RollingoutScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"Rolling Out 爬虫执行失败: {str(e)}")
+            self.util.error(f"Rolling Out 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

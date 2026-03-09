@@ -70,7 +70,7 @@ class AfpScraper(BaseSimpleScraper):
 
             resp = _get(LIST_URL, headers=HEADERS, timeout=15)
             if resp.status_code != 200:
-                self.util.error(f"列表请求失败: {resp.status_code}")
+                self.util.error(f"列表请求失败：{resp.status_code}")
                 return self.get_stats()
             data = resp.json()
             all_items = []
@@ -119,6 +119,6 @@ class AfpScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"法新社 爬虫执行失败: {str(e)}")
+            self.util.error(f"法新社 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

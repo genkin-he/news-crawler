@@ -194,7 +194,7 @@ class ExampleScraper(BaseScraper):
         return self.get_stats()
 ```
 
-在 `main.py` 中注册:
+在 `main.py` 中注册：
 ```python
 from scrapers.simple.example import ExampleScraper
 SCRAPER_REGISTRY = { ..., 'example': ExampleScraper }
@@ -211,8 +211,8 @@ SCRAPER_REGISTRY = { ..., 'example': ExampleScraper }
 
 ## 成本估算 💰
 
-- **Cloud Functions**: ~$3-5/月（每10分钟触发，512MB内存）
-- **BigQuery**: ~$1-2/月（存储+查询）
+- **Cloud Functions**: ~$3-5/月（每 10 分钟触发，512MB 内存）
+- **BigQuery**: ~$1-2/月（存储 + 查询）
 - **总计**: 约 **$4-7/月** ✨
 
 ### 去重说明
@@ -223,7 +223,7 @@ SCRAPER_REGISTRY = { ..., 'example': ExampleScraper }
 
 ### 进一步优化建议
 
-1. 减少触发频率: 15分钟或30分钟一次（降低 Cloud Functions 成本）
+1. 减少触发频率：15 分钟或 30 分钟一次（降低 Cloud Functions 成本）
 2. 使用 Cloud Run 替代 Cloud Functions（按请求计费，可能更便宜）
 3. 调整 BigQuery 分区过期时间（默认 365 天，可缩短至 90 天）
 
@@ -251,13 +251,13 @@ bq query --use_legacy_sql=false \
 - 对于每 10 分钟触发一次的场景，当前性能已足够
 
 ### BigQuery 写入失败
-- 检查表是否存在: `bq show news_project.news_articles`
+- 检查表是否存在：`bq show news_project.news_articles`
 - 检查服务账号权限
 - 查看 Cloud Functions 日志
 
 ### 爬虫超时
-- 增加 Cloud Functions 超时时间: `--timeout=540s`
-- 减少并发爬虫数量: 修改 `config.yaml` 中的 `max_workers`
+- 增加 Cloud Functions 超时时间：`--timeout=540s`
+- 减少并发爬虫数量：修改 `config.yaml` 中的 `max_workers`
 
 ## 参考资料
 

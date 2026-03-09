@@ -77,12 +77,12 @@ class InfocastfnScraper(BaseBrowserScraper):
                         timeout=LIST_TIMEOUT_MS,
                     )
                     if resp.status != 200:
-                        self.util.error(f"Infocast FN 列表请求失败: HTTP {resp.status}")
+                        self.util.error(f"Infocast FN 列表请求失败：HTTP {resp.status}")
                         return self.get_stats()
                     try:
                         data = resp.json()
                     except json.JSONDecodeError as e:
-                        self.util.error(f"Infocast FN 列表 JSON 解析失败: {e}")
+                        self.util.error(f"Infocast FN 列表 JSON 解析失败：{e}")
                         return self.get_stats()
 
                     nodes = data.get("aaData") or []
@@ -133,6 +133,6 @@ class InfocastfnScraper(BaseBrowserScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"Infocast FN 爬虫执行失败: {str(e)}")
+            self.util.error(f"Infocast FN 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

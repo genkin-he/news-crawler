@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-"""TipRanks — BFF payload 列表，正文从详情页 __STATE__ 解析；仅列表+标题作摘要"""
+"""TipRanks — BFF payload 列表，正文从详情页 __STATE__ 解析；仅列表 + 标题作摘要"""
 import sys
 import os
 
@@ -58,6 +58,6 @@ class TipranksScraper(BaseSimpleScraper):
             if not getattr(self, "_timed_out", False) and new_articles:
                 self.save_articles(new_articles)
         except Exception as e:
-            self.util.error(f"TipRanks 失败: {e}")
+            self.util.error(f"TipRanks 失败：{e}")
             self.stats["errors"] += 1
         return self.get_stats()

@@ -112,6 +112,6 @@ class GeekwireScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"GeekWire 爬虫执行失败: {str(e)}")
+            self.util.error(f"GeekWire 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

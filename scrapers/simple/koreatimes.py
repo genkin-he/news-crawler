@@ -90,7 +90,7 @@ class KoreatimesScraper(BaseSimpleScraper):
                     detail_resp = session.get(link, timeout=REQUEST_TIMEOUT)
                     detail_resp.raise_for_status()
                     if _is_error_page(detail_resp.text):
-                        self.util.error(f"详情页为错误页，跳过: {link}")
+                        self.util.error(f"详情页为错误页，跳过：{link}")
                         continue
                     detail_soup = BeautifulSoup(detail_resp.text, "lxml")
                     description = _extract_detail_html(detail_soup)
@@ -120,7 +120,7 @@ class KoreatimesScraper(BaseSimpleScraper):
                 self.util.info("无新增文章")
 
         except Exception as e:
-            self.util.error(f"Korea Times 爬虫执行失败: {str(e)}")
+            self.util.error(f"Korea Times 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
 
         return self.get_stats()

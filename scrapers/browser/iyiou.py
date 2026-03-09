@@ -20,7 +20,7 @@ LIST_URL = "https://www.iyiou.com/news"
 MAX_ARTICLES = 3
 
 def _strip_iyiou_noise(html: str) -> str:
-    """去掉正文末尾多余段落：企业信息链接、小欧AI声明等。"""
+    """去掉正文末尾多余段落：企业信息链接、小欧 AI 声明等。"""
     if not html or not html.strip():
         return html
     soup = BeautifulSoup(html, "lxml")
@@ -32,8 +32,8 @@ def _strip_iyiou_noise(html: str) -> str:
         if "更多文中提及企业信息" in text or "data.iyiou.com/company" in raw:
             p.decompose()
             continue
-        if "本文由小欧AI基于亿欧数据生成" in text or (
-            "小欧AI" in text and "亿欧数据" in text
+        if "本文由小欧 AI 基于亿欧数据生成" in text or (
+            "小欧 AI" in text and "亿欧数据" in text
         ):
             p.decompose()
     return str(soup).strip()
@@ -171,7 +171,7 @@ class IyiouScraper(BaseBrowserScraper):
             page.wait_for_timeout(int(CAPTCHA_AFTER_DRAG_WAIT_SEC * 1000))
             return not self._is_captcha_visible(page)
         except Exception as e:
-            self.util.error(f"自动滑块尝试失败: {e}")
+            self.util.error(f"自动滑块尝试失败：{e}")
             return False
 
     def _handle_captcha_if_present(self, page, context: str) -> bool:
@@ -367,6 +367,6 @@ class IyiouScraper(BaseBrowserScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"亿欧 爬虫执行失败: {e}")
+            self.util.error(f"亿欧 爬虫执行失败：{e}")
             self.stats["errors"] += 1
         return self.get_stats()

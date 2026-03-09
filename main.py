@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-"""Cloud Functions 入口：简单爬虫(crawl_news) + 无头浏览器爬虫(crawl_news_browser)"""
+"""Cloud Functions 入口：简单爬虫 (crawl_news) + 无头浏览器爬虫 (crawl_news_browser)"""
 
 import json
 import sys
@@ -297,8 +297,8 @@ def _run_crawl(request: Any, scraper_registry: Dict[str, type]) -> tuple:
         }, 400
 
     util = SpiderUtil(name="crawl")
-    util.info(f"开始爬取新闻源: {', '.join(sources)}")
-    util.info(f"测试模式: {test_mode}")
+    util.info(f"开始爬取新闻源：{', '.join(sources)}")
+    util.info(f"测试模式：{test_mode}")
 
     if test_mode:
         bq_client = MockBigQueryClient()
@@ -340,7 +340,7 @@ def _run_crawl(request: Any, scraper_registry: Dict[str, type]) -> tuple:
             try:
                 result = future.result(timeout=timeout)
                 results[source] = result
-                util.info(f"爬虫 [{source}] 完成: {result}")
+                util.info(f"爬虫 [{source}] 完成：{result}")
             except Exception as e:
                 error_msg = f"{source}: {str(e)}"
                 errors.append(error_msg)
@@ -362,7 +362,7 @@ def _run_crawl(request: Any, scraper_registry: Dict[str, type]) -> tuple:
         "test_mode": test_mode,
     }
     util.info(
-        f"爬取完成: 新文章 {total_new_articles}，跳过 {total_skipped}，错误 {total_errors}"
+        f"爬取完成：新文章 {total_new_articles}，跳过 {total_skipped}，错误 {total_errors}"
     )
     return response, 200
 
@@ -423,5 +423,5 @@ if __name__ == "__main__":
     else:
         log.info("本地测试：简单爬虫 (crawl_news)，传参 browser 可测无头浏览器爬虫")
         result, status = crawl_news(MockRequest())
-    log.info(f"状态码: {status}")
-    log.info(f"结果: {result}")
+    log.info(f"状态码：{status}")
+    log.info(f"结果：{result}")

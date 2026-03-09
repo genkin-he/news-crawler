@@ -158,7 +158,7 @@ class EetimesScraper(BaseSimpleScraper):
                         if collected:
                             self.util.info("已从 RSS 获取列表")
                 except Exception as e:
-                    self.util.error(f"RSS 请求失败: {e}")
+                    self.util.error(f"RSS 请求失败：{e}")
 
             # 2) RSS 无结果时再试列表页
             if not collected and not getattr(self, "_timed_out", False):
@@ -168,7 +168,7 @@ class EetimesScraper(BaseSimpleScraper):
                     try:
                         resp = _get(list_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
                         if resp.status_code != 200:
-                            self.util.error(f"列表页请求失败: {list_url} -> {resp.status_code}")
+                            self.util.error(f"列表页请求失败：{list_url} -> {resp.status_code}")
                             continue
                         soup = BeautifulSoup(resp.text, "lxml")
                         for link, title in _extract_list_entries(soup):
@@ -207,9 +207,9 @@ class EetimesScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except requests.exceptions.Timeout as e:
-            self.util.error(f"EE Times 请求超时: {e}")
+            self.util.error(f"EE Times 请求超时：{e}")
             self.stats["errors"] += 1
         except Exception as e:
-            self.util.error(f"EE Times 爬虫执行失败: {str(e)}")
+            self.util.error(f"EE Times 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

@@ -56,12 +56,12 @@ class InsidermonkeyScraper(BaseSimpleScraper):
             try:
                 resp = _get(LIST_URL, headers=HEADERS, timeout=22)
             except Exception as e:
-                self.util.error(f"Insider Monkey 列表请求失败: {e}")
+                self.util.error(f"Insider Monkey 列表请求失败：{e}")
                 self.stats["errors"] += 1
                 return self.get_stats()
             resp.encoding = "utf-8"
             if resp.status_code not in (200, 202):
-                self.util.error(f"Insider Monkey 列表请求失败: HTTP {resp.status_code}")
+                self.util.error(f"Insider Monkey 列表请求失败：HTTP {resp.status_code}")
                 self.stats["errors"] += 1
                 return self.get_stats()
             if "Access Restricted" in resp.text or "challenge-container" in resp.text:
@@ -100,6 +100,6 @@ class InsidermonkeyScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"Insider Monkey 爬虫执行失败: {str(e)}")
+            self.util.error(f"Insider Monkey 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

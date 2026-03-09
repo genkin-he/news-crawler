@@ -16,8 +16,8 @@ NC='\033[0m' # No Color
 
 # 检查必要的环境变量
 if [ -z "$GCP_PROJECT_ID" ]; then
-    echo -e "${RED}错误: 请设置环境变量 GCP_PROJECT_ID${NC}"
-    echo "示例: export GCP_PROJECT_ID=\"your-project-id\""
+    echo -e "${RED}错误：请设置环境变量 GCP_PROJECT_ID${NC}"
+    echo "示例：export GCP_PROJECT_ID=\"your-project-id\""
     exit 1
 fi
 
@@ -25,8 +25,8 @@ PROJECT_ID="$GCP_PROJECT_ID"
 REGION="${GCP_REGION:-us-central1}"
 
 echo -e "${GREEN}配置信息:${NC}"
-echo "  项目ID: $PROJECT_ID"
-echo "  区域: $REGION"
+echo "  项目 ID: $PROJECT_ID"
+echo "  区域：$REGION"
 echo ""
 
 # 设置项目
@@ -85,16 +85,16 @@ echo -e "${GREEN}函数 URL:${NC} $FUNCTION_URL"
 echo ""
 echo -e "${YELLOW}下一步操作:${NC}"
 echo ""
-echo "1. 测试函数:"
+echo "1. 测试函数："
 echo -e "   ${GREEN}curl -X POST -H \"Content-Type: application/json\" \\${NC}"
 echo -e "   ${GREEN}  -d '{\"sources\": \"techcrunch\"}' \\${NC}"
 echo -e "   ${GREEN}  $FUNCTION_URL${NC}"
 echo ""
-echo "2. 配置定时任务:"
+echo "2. 配置定时任务："
 echo -e "   ${GREEN}./deploy/setup_scheduler.sh${NC}"
 echo ""
-echo "3. 查看日志:"
+echo "3. 查看日志："
 echo -e "   ${GREEN}gcloud logging read \"resource.type=cloud_function\" --limit=20${NC}"
 echo ""
-echo -e "${GREEN}💰 预计成本: $4-7/月${NC}"
+echo -e "${GREEN}💰 预计成本：$4-7/月${NC}"
 echo ""

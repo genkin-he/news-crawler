@@ -101,7 +101,7 @@ class BigQueryClient:
             table.time_partitioning = bigquery.TimePartitioning(
                 type_=bigquery.TimePartitioningType.DAY,
                 field="pub_date",
-                expiration_ms=365 * 24 * 60 * 60 * 1000,  # 365天过期
+                expiration_ms=365 * 24 * 60 * 60 * 1000,  # 365 天过期
             )
 
             # 配置聚簇
@@ -170,7 +170,7 @@ class BigQueryClient:
             sources: 新闻源列表
             limit_per_source: 默认每个源的限制
             source_limits: 特定源的限制，如 {"bloomberg": 50, "coindesk": "all"}
-                         值为 "all" 表示拉取该源所有链接（7天内）
+                         值为 "all" 表示拉取该源所有链接（7 天内）
         """
         if not sources:
             return {}
@@ -227,7 +227,7 @@ class BigQueryClient:
                     seen.add(row.link)
             return links
         except Exception as e:
-            self._log_error(f"批量获取最新链接时出错: {e}")
+            self._log_error(f"批量获取最新链接时出错：{e}")
             return []
 
     def link_exists(self, link: str, source: Optional[str] = None) -> bool:
@@ -259,7 +259,7 @@ class BigQueryClient:
             results = list(query_job.result())
             return results[0].count > 0 if results else False
         except Exception as e:
-            self._log_error(f"检查链接存在性时出错: {e}")
+            self._log_error(f"检查链接存在性时出错：{e}")
             return False
 
     def insert_article(self, article: Dict) -> bool:
@@ -331,7 +331,7 @@ class BigQueryClient:
                 for i, error in enumerate(errors):
                     self._log_error(f"  错误 {i + 1}: {error}")
                 if rows_to_insert:
-                    self._log_error(f"  第一条数据示例: {rows_to_insert[0]}")
+                    self._log_error(f"  第一条数据示例：{rows_to_insert[0]}")
                 return False
             else:
                 self._log_info(f"成功插入 {len(rows_to_insert)} 条记录到 BigQuery")
@@ -340,15 +340,15 @@ class BigQueryClient:
                 return True
         except Exception as e:
             self._log_error(f"批量插入失败 (异常): {e}")
-            self._log_error(f"  错误类型: {type(e).__name__}")
+            self._log_error(f"  错误类型：{type(e).__name__}")
             if rows_to_insert:
-                self._log_error(f"  尝试插入的数据示例: {rows_to_insert[0]}")
+                self._log_error(f"  尝试插入的数据示例：{rows_to_insert[0]}")
             self._log_error(traceback.format_exc())
             return False
 
     def get_recent_links(self, source: str, days: int = 7) -> List[str]:
         """
-        获取指定新闻源最近N天的所有链接（用于初始化 Redis 缓存）
+        获取指定新闻源最近 N 天的所有链接（用于初始化 Redis 缓存）
 
         Args:
             source: 新闻源
@@ -376,7 +376,7 @@ class BigQueryClient:
             results = list(query_job.result())
             return [row.link for row in results]
         except Exception as e:
-            self._log_error(f"获取最近链接时出错: {e}")
+            self._log_error(f"获取最近链接时出错：{e}")
             return []
 
     def get_stats(self, source: Optional[str] = None, days: int = 1) -> Dict:
@@ -385,7 +385,7 @@ class BigQueryClient:
 
         Args:
             source: 新闻源（可选）
-            days: 统计最近N天
+            days: 统计最近 N 天
 
         Returns:
             Dict: 统计信息
@@ -428,5 +428,5 @@ class BigQueryClient:
 
             return stats
         except Exception as e:
-            self._log_error(f"获取统计信息时出错: {e}")
+            self._log_error(f"获取统计信息时出错：{e}")
             return {}

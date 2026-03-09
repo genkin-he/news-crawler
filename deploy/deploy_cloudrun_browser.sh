@@ -11,16 +11,16 @@ PROJECT_ID="${GCP_PROJECT_ID:-your-project-id}"
 REGION="${GCP_REGION:-us-central1}"
 SERVICE_NAME="crawl-news-browser"
 JOB_NAME="news-crawler-browser-job"
-SCHEDULE="*/30 * * * *"   # 每30分钟
+SCHEDULE="*/30 * * * *"   # 每 30 分钟
 TIMEZONE="Asia/Shanghai"
 
 echo "========================================="
 echo "部署无头浏览器爬虫到 Cloud Run"
 echo "========================================="
-echo "  项目ID: $PROJECT_ID"
-echo "  区域: $REGION"
-echo "  服务名: $SERVICE_NAME"
-echo "  镜像: Dockerfile.firefox（仅 Firefox，体积更小）"
+echo "  项目 ID: $PROJECT_ID"
+echo "  区域：$REGION"
+echo "  服务名：$SERVICE_NAME"
+echo "  镜像：Dockerfile.firefox（仅 Firefox，体积更小）"
 echo ""
 
 # CI（如 GitHub Actions）会设置 GOOGLE_APPLICATION_CREDENTIALS，需在本进程内激活 gcloud
@@ -30,7 +30,7 @@ fi
 
 ACCOUNT=$(gcloud auth list --format="value(account)" 2>/dev/null | head -n1)
 if [ -z "$ACCOUNT" ]; then
-    echo "错误: 未登录 Google Cloud，请先运行 'gcloud auth login'"
+    echo "错误：未登录 Google Cloud，请先运行 'gcloud auth login'"
     exit 1
 fi
 
@@ -54,7 +54,7 @@ gcloud run deploy "$SERVICE_NAME" \
 
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --format="value(status.url)")
 if [ -z "$SERVICE_URL" ]; then
-    echo "错误: 无法获取服务 URL"
+    echo "错误：无法获取服务 URL"
     exit 1
 fi
 echo "  服务 URL: $SERVICE_URL"
@@ -80,7 +80,7 @@ echo "========================================="
 echo "部署与定时任务配置完成"
 echo "========================================="
 echo ""
-echo "测试: curl -X POST -H 'Content-Type: application/json' -d '{\"sources\": \"stcn\", \"test\": true}' $SERVICE_URL"
+echo "测试：curl -X POST -H 'Content-Type: application/json' -d '{\"sources\": \"stcn\", \"test\": true}' $SERVICE_URL"
 echo ""
-echo "手动触发定时任务: gcloud scheduler jobs run $JOB_NAME --location=$REGION"
+echo "手动触发定时任务：gcloud scheduler jobs run $JOB_NAME --location=$REGION"
 echo ""

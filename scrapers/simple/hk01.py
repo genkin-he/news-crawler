@@ -74,7 +74,7 @@ class Hk01Scraper(BaseSimpleScraper):
                         "pub_date": self.util.current_time_string(),
                         "kind": 1,
                         "language": "zh-HK",
-                        "source_name": "香港01",
+                        "source_name": "香港 01",
                     })
 
             if getattr(self, "_timed_out", False):
@@ -85,6 +85,6 @@ class Hk01Scraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"HK01 爬虫执行失败: {str(e)}")
+            self.util.error(f"HK01 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

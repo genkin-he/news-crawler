@@ -117,7 +117,7 @@ class TechCrunchScraper(BaseSimpleScraper):
                                 "source_name": "TechCrunch",
                             })
                     except Exception as e:
-                        self.util.error(f"解析文章失败: {str(e)}")
+                        self.util.error(f"解析文章失败：{str(e)}")
                         self.stats['errors'] += 1
                         continue
 
@@ -132,7 +132,7 @@ class TechCrunchScraper(BaseSimpleScraper):
                 self.stats['errors'] += 1
 
         except Exception as e:
-            self.util.error(f"爬虫执行失败: {str(e)}")
+            self.util.error(f"爬虫执行失败：{str(e)}")
             self.stats['errors'] += 1
 
         return self.get_stats()

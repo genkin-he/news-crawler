@@ -41,13 +41,13 @@ class JinwucjHkScraper(BaseSimpleScraper):
             new_articles = []
             resp = _post(API_URL, headers=HEADERS, json={"pageNum": 1, "pageSize": 10}, timeout=30)
             if resp.status_code != 200:
-                self.util.error(f"金吾香港 API 状态码: {resp.status_code}")
+                self.util.error(f"金吾香港 API 状态码：{resp.status_code}")
                 self.stats["errors"] += 1
                 return self.get_stats()
             try:
                 body = resp.json()
             except ValueError as e:
-                self.util.error(f"金吾香港 API JSON 解析失败: {e}")
+                self.util.error(f"金吾香港 API JSON 解析失败：{e}")
                 self.stats["errors"] += 1
                 return self.get_stats()
             posts = (body.get("body") or {}).get("list")
@@ -71,9 +71,9 @@ class JinwucjHkScraper(BaseSimpleScraper):
             if not getattr(self, "_timed_out", False) and new_articles:
                 self.save_articles(new_articles)
         except requests.exceptions.Timeout as e:
-            self.util.error(f"金吾财经香港 请求超时: {e}")
+            self.util.error(f"金吾财经香港 请求超时：{e}")
             self.stats["errors"] += 1
         except Exception as e:
-            self.util.error(f"金吾财经香港 失败: {e}")
+            self.util.error(f"金吾财经香港 失败：{e}")
             self.stats["errors"] += 1
         return self.get_stats()

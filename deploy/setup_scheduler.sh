@@ -12,16 +12,16 @@ PROJECT_ID="${GCP_PROJECT_ID:-your-project-id}"
 REGION="${GCP_REGION:-us-central1}"
 JOB_NAME="news-crawler-job"
 FUNCTION_NAME="crawl-news"
-SCHEDULE="*/5 * * * *"  # 每x分钟执行一次
+SCHEDULE="*/5 * * * *"  # 每 x 分钟执行一次
 TIMEZONE="Asia/Shanghai"
 
 echo ""
-echo "配置信息:"
-echo "  项目ID: $PROJECT_ID"
-echo "  区域: $REGION"
-echo "  任务名: $JOB_NAME"
-echo "  执行频率: $SCHEDULE (每x分钟)"
-echo "  时区: $TIMEZONE"
+echo "配置信息："
+echo "  项目 ID: $PROJECT_ID"
+echo "  区域：$REGION"
+echo "  任务名：$JOB_NAME"
+echo "  执行频率：$SCHEDULE (每 x 分钟)"
+echo "  时区：$TIMEZONE"
 echo ""
 
 # CI（如 GitHub Actions）会设置 GOOGLE_APPLICATION_CREDENTIALS，需在本进程内激活 gcloud
@@ -40,7 +40,7 @@ FUNCTION_URL=$(gcloud functions describe "$FUNCTION_NAME" \
   --format="value(serviceConfig.uri)")
 
 if [ -z "$FUNCTION_URL" ]; then
-    echo "错误: 无法获取 Cloud Function URL，请先部署 Cloud Functions"
+    echo "错误：无法获取 Cloud Function URL，请先部署 Cloud Functions"
     exit 1
 fi
 
@@ -69,12 +69,12 @@ echo "========================================="
 echo "Cloud Scheduler 配置完成！"
 echo "========================================="
 echo ""
-echo "查看任务:"
+echo "查看任务："
 echo "  gcloud scheduler jobs describe $JOB_NAME --location=$REGION"
 echo ""
-echo "手动触发任务:"
+echo "手动触发任务："
 echo "  gcloud scheduler jobs run $JOB_NAME --location=$REGION"
 echo ""
-echo "查看执行日志:"
+echo "查看执行日志："
 echo "  gcloud logging read \"resource.type=cloud_function AND resource.labels.function_name=$FUNCTION_NAME\" --limit=50 --format=json"
 echo ""

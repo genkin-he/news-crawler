@@ -75,6 +75,6 @@ class NowScraper(BaseSimpleScraper):
             if not getattr(self, "_timed_out", False) and new_articles:
                 self.save_articles(new_articles)
         except Exception as e:
-            self.util.error(f"NOW 失败: {e}")
+            self.util.error(f"NOW 失败：{e}")
             self.stats["errors"] += 1
         return self.get_stats()

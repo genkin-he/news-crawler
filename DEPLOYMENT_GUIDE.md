@@ -319,14 +319,14 @@ bq rm -r -f $GCP_PROJECT_ID:news_project
    - Cloud Build 编辑者（若用 --source 构建）
    - 或项目角色 `roles/owner`（仅建议测试用）
 
-4. **手动部署**：在 GitHub 仓库 **Actions** 页选择 “Deploy to GCP” → 点击 **“Run workflow”**，在 **“部署目标”** 下拉框中选择：
+4. **手动部署**：在 GitHub 仓库 **Actions** 页选择“Deploy to GCP” → 点击 **“Run workflow”**，在 **“部署目标”** 下拉框中选择：
    - **simple**：仅部署 crawl-news（Cloud Functions）
    - **browser**：仅部署 crawl-news-browser（Cloud Run）
    - **all**：两个服务都部署
 
 5. **（可选）仅允许指定人完成部署**：workflow 的部署 job 使用了 `environment: deploy`。
    - **必须先**在仓库 **Settings** → **Environments** 中点击 **New environment**，名称填 **deploy** 并保存（否则 workflow 会因找不到环境而报错）。
-   - 若希望**只有指定人（如项目所有者）能完成部署**：在 **deploy** 环境的 **Deployment protection rules** 中勾选 **Required reviewers**，添加允许审批的账号。之后每次有人点 “Run workflow”，部署 job 会处于 “Waiting for approval”，只有被设为 Required reviewers 的成员在 Actions 页批准后才会真正执行。
+   - 若希望**只有指定人（如项目所有者）能完成部署**：在 **deploy** 环境的 **Deployment protection rules** 中勾选 **Required reviewers**，添加允许审批的账号。之后每次有人点“Run workflow”，部署 job 会处于“Waiting for approval”，只有被设为 Required reviewers 的成员在 Actions 页批准后才会真正执行。
    - 若不需要审批：创建 **deploy** 环境后不勾选 Required reviewers 即可，有写权限的人触发后会直接部署。
 
 ### 方式二：控制台「连接仓库」（仅 Cloud Run 服务）

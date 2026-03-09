@@ -75,7 +75,7 @@ class YicaiglobalScraper(BaseSimpleScraper):
                             continue
                         description = self._get_detail(full_url)
                         if description:
-                            self.mark_link_as_processed(link)
+                            self.mark_link_as_processed(full_url)
                             new_articles.append({
                                 "title": title,
                                 "description": description,
@@ -98,6 +98,6 @@ class YicaiglobalScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"Yicai Global 爬虫执行失败: {str(e)}")
+            self.util.error(f"Yicai Global 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

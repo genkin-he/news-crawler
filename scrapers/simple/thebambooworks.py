@@ -87,13 +87,13 @@ class ThebambooworksScraper(BaseSimpleScraper):
                 try:
                     resp = _get(rss_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
                     if resp.status_code != 200:
-                        self.util.error(f"RSS 请求失败: {rss_url} -> HTTP {resp.status_code}")
+                        self.util.error(f"RSS 请求失败：{rss_url} -> HTTP {resp.status_code}")
                         continue
                     items = _parse_rss(resp.text)
                     if items:
                         break
                 except Exception as e:
-                    self.util.error(f"RSS 请求失败: {rss_url} -> {e}")
+                    self.util.error(f"RSS 请求失败：{rss_url} -> {e}")
                     continue
             if not items:
                 self.util.error("所有 RSS 地址均无法获取条目")
@@ -130,6 +130,6 @@ class ThebambooworksScraper(BaseSimpleScraper):
             else:
                 self.util.info("无新增文章")
         except Exception as e:
-            self.util.error(f"The Bamboo Works 爬虫执行失败: {str(e)}")
+            self.util.error(f"The Bamboo Works 爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
         return self.get_stats()

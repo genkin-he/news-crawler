@@ -92,7 +92,7 @@ class APNewsScraper(BaseSimpleScraper):
                 soup = BeautifulSoup(body, "lxml")
                 items = soup.select(".PageList-items-item")
 
-                self.util.info(f"列表条目: {len(items)}")
+                self.util.info(f"列表条目：{len(items)}")
 
                 for item in items:
                     if getattr(self, "_timed_out", False):
@@ -139,7 +139,7 @@ class APNewsScraper(BaseSimpleScraper):
                         if "Access Restricted" in error_msg:
                             self.util.error("访问受限，停止爬取")
                             break
-                        self.util.error(f"解析文章失败: {error_msg}")
+                        self.util.error(f"解析文章失败：{error_msg}")
                         self.stats["errors"] += 1
                         continue
 
@@ -154,7 +154,7 @@ class APNewsScraper(BaseSimpleScraper):
                 self.stats["errors"] += 1
 
         except Exception as e:
-            self.util.error(f"爬虫执行失败: {str(e)}")
+            self.util.error(f"爬虫执行失败：{str(e)}")
             self.stats["errors"] += 1
 
         return self.get_stats()

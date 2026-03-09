@@ -1,5 +1,5 @@
 -- 创建 BigQuery 表的 SQL 脚本
--- 使用方法: bq query --use_legacy_sql=false < create_bigquery_table.sql
+-- 使用方法：bq query --use_legacy_sql=false < create_bigquery_table.sql
 
 -- 1. 创建数据集（如果不存在）
 CREATE SCHEMA IF NOT EXISTS `news_project`
@@ -27,9 +27,9 @@ PARTITION BY DATE(pub_date)
 CLUSTER BY source, language
 OPTIONS(
   description="新闻文章表，按发布日期分区，按来源和语言聚簇",
-  partition_expiration_days=7,    -- 分区保留7天
+  partition_expiration_days=7,    -- 分区保留 7 天
   require_partition_filter=true   -- 查询时必须使用分区过滤
 );
 
 -- 完成提示
-SELECT 'BigQuery 表创建完成!' as status;
+SELECT 'BigQuery 表创建完成！' as status;
