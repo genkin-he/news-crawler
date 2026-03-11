@@ -1,68 +1,107 @@
 # -*- coding: UTF-8 -*-
-"""FX168 快讯/直播流爬虫 — API 列表，无详情"""
+"""FX168 快讯/直播流爬虫 — 从速递页 https://www.fx168news.com/express 解析 __NEXT_DATA__"""
+import json
+import re
 import sys
 import os
-
-import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from scrapers.simple.base_simple_scraper import BaseSimpleScraper
-from scrapers.simple.http_client import get as _get, post as _post
+from scrapers.simple.http_client import get as _get
 
-FX168_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
+EXPRESS_URL = "https://www.fx168news.com/express"
+BASE_URL = "https://www.fx168news.com"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "zh-CN,zh;q=0.9",
-    "Origin": "https://www.fx168news.com",
     "Referer": "https://www.fx168news.com/",
-    "Site-Channel": "001",
 }
-DEFAULT_PCC = "JFhozD8+sNQAc2XDrpuzsX4S4ZooL+hKuc4x4u+So/iPVUW8z8wwiwHMxQM7TQgC1eXoyIB3xLO1TVELr0Z28lka/bckuowSjTx1KUyCIRX6xdsEu+N+EBWF0SW/BYapjIIfXNUXibDEMoJEzBYFf/kcsq7oC4O8Ju/rWrLs9io="
-LIST_API = "https://centerapi.fx168api.com/cms/api/cmsFastNews/fastNews/getList"
+MAX_ITEMS = 20
+
+
+def _strip_trailing_source(text: str) -> str:
+    """去掉末尾的「（新闻源）」类标注，如（央视新闻）、（路透）。"""
+    if not text or not text.strip():
+        return text
+    out = text.strip()
+    while True:
+        next_out = re.sub(r"[ \t\n\r]*（[^）]+）\s*$", "", out)
+        if next_out == out:
+            break
+        out = next_out.strip()
+    return out
+
+
+def _extract_next_data(html: str) -> dict | None:
+    """从页面 HTML 中解析 __NEXT_DATA__ 的 JSON。"""
+    marker = '__NEXT_DATA__'
+    idx = html.find(marker)
+    if idx == -1:
+        return None
+    start = html.find(">", idx) + 1
+    if start <= 0:
+        return None
+    end = html.find("</script>", start)
+    if end == -1:
+        return None
+    raw = html[start:end].strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
 
 
 class Fx168LiveScraper(BaseSimpleScraper):
-    """FX168 快讯爬虫 — 仅列表，title 用 textContent"""
+    """FX168 快讯爬虫 — 请求速递页，从 __NEXT_DATA__ 取列表，无需中心 API"""
 
     def __init__(self, bq_client):
         super().__init__("fx168_live", bq_client)
 
     def _run_impl(self):
         try:
-            self.util.info("开始爬取 FX168 Live...")
+            self.util.info("开始爬取 FX168 Live（速递页）...")
             new_articles = []
 
-            headers = {**FX168_HEADERS, "_pcc": DEFAULT_PCC}
-            resp = _get(
-                LIST_API,
-                params={"fastChannelId": "001", "pageNo": 1, "pageSize": 20, "appCategory": "web", "direct": "down"},
-                headers=headers,
-                timeout=15,
-            )
+            resp = _get(EXPRESS_URL, headers=HEADERS, timeout=15)
             if resp.status_code != 200:
-                self.util.error("API 请求失败")
+                self.util.error(f"速递页请求失败：HTTP {resp.status_code}")
                 return self.get_stats()
-            data = resp.json()
-            items = (data.get("data") or {}).get("items") or []
 
-            for item in items:
+            next_data = _extract_next_data(resp.text)
+            if not next_data:
+                self.util.error("速递页未解析到 __NEXT_DATA__")
+                return self.get_stats()
+
+            data = (next_data.get("props") or {}).get("pageProps") or {}
+            page_data = data.get("data") or {}
+            items = (page_data.get("express") or {}).get("items")
+            if not items:
+                items = page_data.get("courierList") or []
+
+            for item in items[:MAX_ITEMS]:
                 if getattr(self, "_timed_out", False):
                     break
                 if item.get("isTop") != 0:
                     continue
                 fast_id = item.get("fastNewsId")
-                link = f"https://www.fx168news.com/express/fastnews/{fast_id}"
+                if not fast_id:
+                    continue
+                link = f"{BASE_URL}/express/fastnews/{fast_id}"
                 if self.is_link_exists(link):
                     continue
-                text = (item.get("textContent") or "").strip()
-                if not text:
+                raw_content = (item.get("textContent") or item.get("pureTextContent") or "").strip()
+                if not raw_content:
+                    continue
+                raw_content = _strip_trailing_source(raw_content)
+                if not raw_content:
                     continue
                 pub_date = item.get("publishTime") or self.util.current_time_string()
                 self.mark_link_as_processed(link)
                 new_articles.append({
-                    "title": text[:200] if len(text) > 200 else text,
-                    "description": "",
+                    "title": "",
+                    "description": raw_content,
                     "link": link,
                     "author": "",
                     "pub_date": pub_date,
