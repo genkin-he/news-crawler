@@ -1,74 +1,174 @@
 # -*- coding: UTF-8 -*-
-"""FX168 爬虫 — 使用 FX168 API 列表 + 详情"""
+"""FX168 爬虫 — 从资讯页 https://www.fx168news.com/info/001 解析 __NEXT_DATA__ 列表与详情"""
+import json
+import re
 import sys
 import os
-
-import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from scrapers.simple.base_simple_scraper import BaseSimpleScraper
-from scrapers.simple.http_client import get as _get, post as _post
+from scrapers.simple.http_client import get as _get
 
-FX168_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
+INFO_URL = "https://www.fx168news.com/info/001"
+BASE_URL = "https://www.fx168news.com"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "zh-CN,zh;q=0.9",
-    "Origin": "https://www.fx168news.com",
     "Referer": "https://www.fx168news.com/",
-    "Site-Channel": "001",
 }
-DEFAULT_PCC = "JFhozD8+sNQAc2XDrpuzsX4S4ZooL+hKuc4x4u+So/iPVUW8z8wwiwHMxQM7TQgC1eXoyIB3xLO1TVELr0Z28lka/bckuowSjTx1KUyCIRX6xdsEu+N+EBWF0SW/BYapjIIfXNUXibDEMoJEzBYFf/kcsq7oC4O8Ju/rWrLs9io="
-LIST_API = "https://centerapi.fx168api.com/cms/api/cmsnews/news/getNewsByChannel"
-DETAIL_API = "https://centerapi.fx168api.com/cms/api/cmsnews/news/getNewsDetail"
+MAX_ARTICLES = 4
+
+# 文末免责声明起头，从包含该内容的 div 起整块删掉
+_FOOTER_MARKER = "1. 欢迎转载"
+
+
+def _strip_fx168_footer(html: str) -> str:
+    """去掉正文末尾「欢迎转载…」「所有内容仅供参考…」整块免责声明。"""
+    if not html or _FOOTER_MARKER not in html:
+        return html
+    idx = html.find(_FOOTER_MARKER)
+    pos = idx
+    start = -1
+    while True:
+        pos = html.rfind("<div", 0, pos)
+        if pos == -1:
+            break
+        if "border-top" in html[pos:idx]:
+            start = pos
+            break
+    if start == -1:
+        return html
+    return html[:start].rstrip()
+
+
+def _strip_xinshikong_blocks(html: str) -> str:
+    """去掉正文中的「新时空声明」「转载自新时空」「市场有风险…」「敬告读者…」等免责/声明段。"""
+    if not html:
+        return html
+    # 去掉含「新时空声明」的整段（只匹配单个 <p>…</p>，不跨段；允许 </span> 等在内）
+    html = re.sub(
+        r"<p[^>]*>(?:(?!</p>).)*?新时空声明(?:(?!</p>).)*?交易风险自担(?:(?!</p>).)*</p>",
+        "",
+        html,
+        flags=re.DOTALL,
+    )
+    # 去掉「本文转载自新时空，原文链接:…」整段（单段）
+    html = re.sub(
+        r"<p[^>]*>(?:(?!</p>).)*?本文转载自新时空，原文链接:(?:(?!</p>).)*?</p>",
+        "",
+        html,
+        flags=re.DOTALL,
+    )
+    # 去掉「市场有风险，投资需谨慎。本文为AI…不构成个人投资建议。」整段（可能单独成 <p> 或纯文本）
+    html = re.sub(
+        r"<p[^>]*>\s*（市场有风险，投资需谨慎。本文为AI基于第三方数据生成，仅供参考，不构成个人投资建议。）\s*</p>",
+        "",
+        html,
+    )
+    html = re.sub(
+        r"（市场有风险，投资需谨慎。本文为AI基于第三方数据生成，仅供参考，不构成个人投资建议。）",
+        "",
+        html,
+    )
+    # 去掉含「敬告读者：本文为转载发布…FX168财经仅提供信息发布平台…」整段（可能在 <p> 或纯文本）
+    html = re.sub(
+        r"<p[^>]*>(?:(?!</p>).)*?敬告读者(?:(?!</p>).)*?信息发布平台(?:(?!</p>).)*</p>",
+        "",
+        html,
+        flags=re.DOTALL,
+    )
+    html = re.sub(
+        r"敬告读者：本文为转载发布[\s\S]*?细微删改。?\s*",
+        "",
+        html,
+    )
+    html = re.sub(r"\n+", "\n", html).strip()
+    # 去掉删除内容后残留的空 <p></p>
+    html = re.sub(r"<p>\s*</p>", "", html)
+    return html.strip()
+
+
+def _extract_next_data(html: str) -> dict | None:
+    """从页面 HTML 中解析 __NEXT_DATA__ 的 JSON。"""
+    marker = "__NEXT_DATA__"
+    idx = html.find(marker)
+    if idx == -1:
+        return None
+    start = html.find(">", idx) + 1
+    if start <= 0:
+        return None
+    end = html.find("</script>", start)
+    if end == -1:
+        return None
+    raw = html[start:end].strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
 
 
 class Fx168Scraper(BaseSimpleScraper):
-    """FX168 爬虫"""
+    """FX168 爬虫 — 请求 /info/001 取列表，请求文章页取详情正文"""
 
     def __init__(self, bq_client):
         super().__init__("fx168", bq_client)
 
-    def _get_detail(self, news_id: str) -> str:
-        self.util.info(f"detail id: {news_id}")
+    def _get_detail(self, link: str) -> str:
+        """请求文章页，从 __NEXT_DATA__.getNewsDetailData.newsContent 取正文。"""
+        self.util.info(f"detail: {link}")
         try:
-            h = {**FX168_HEADERS, "_pcc": DEFAULT_PCC}
-            resp = _get(DETAIL_API, params={"newsId": news_id}, headers=h, timeout=15)
+            resp = _get(link, headers=HEADERS, timeout=15)
             if resp.status_code != 200:
                 return ""
-            data = resp.json()
-            return (data.get("data") or {}).get("newsContent") or ""
+            next_data = _extract_next_data(resp.text)
+            if not next_data:
+                return ""
+            data = (next_data.get("props") or {}).get("pageProps") or {}
+            detail = (data.get("data") or {}).get("getNewsDetailData") or {}
+            return (detail.get("newsContent") or "").strip()
         except Exception as e:
-            self.util.error(f"获取详情失败 {news_id}: {e}")
+            self.util.error(f"获取详情失败 {link}: {e}")
             return ""
 
     def _run_impl(self):
         try:
-            self.util.info("开始爬取 FX168...")
+            self.util.info("开始爬取 FX168（资讯页）...")
             new_articles = []
 
-            headers = {**FX168_HEADERS, "_pcc": DEFAULT_PCC}
-            resp = _get(LIST_API, params={"pageNo": 1, "pageSize": 10, "channelCodes": "001001"}, headers=headers, timeout=15)
+            resp = _get(INFO_URL, headers=HEADERS, timeout=15)
             if resp.status_code != 200:
-                self.util.error("API 请求失败")
+                self.util.error(f"资讯页请求失败：HTTP {resp.status_code}")
                 return self.get_stats()
-            data = resp.json()
-            items = (data.get("data") or {}).get("items") or []
 
-            for item in items[:4]:
+            next_data = _extract_next_data(resp.text)
+            if not next_data:
+                self.util.error("资讯页未解析到 __NEXT_DATA__")
+                return self.get_stats()
+
+            page_data = (next_data.get("props") or {}).get("pageProps") or {}
+            data = page_data.get("data") or {}
+            info_list = data.get("infoListData") or {}
+            items = info_list.get("items") or []
+
+            for item in items[:MAX_ARTICLES]:
                 if getattr(self, "_timed_out", False):
                     break
-                url_code = item.get("urlCode")
-                link = f"https://www.fx168news.com/article/{url_code}"
+                url_code = (item.get("urlCode") or "").strip()
+                if not url_code:
+                    continue
+                link = f"{BASE_URL}/article/{url_code}"
                 if self.is_link_exists(link):
                     self.util.info(f"exists link: {link}")
                     continue
-                news_id = item.get("newsId")
                 title = (item.get("newsTitle") or "").strip()
-                pub_date = item.get("firstPublishTime") or self.util.current_time_string()
                 if not title:
                     continue
-                description = self._get_detail(news_id)
+                pub_date = item.get("firstPublishTime") or self.util.current_time_string()
+                description = _strip_fx168_footer(
+                    _strip_xinshikong_blocks(self._get_detail(link))
+                )
                 if description:
                     self.mark_link_as_processed(link)
                     new_articles.append({

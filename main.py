@@ -74,7 +74,6 @@ from scrapers.simple.forbes import ForbesScraper
 from scrapers.simple.forex import ForexScraper
 from scrapers.simple.fx168 import Fx168Scraper
 from scrapers.simple.fx168_live import Fx168LiveScraper
-from scrapers.simple.fx168_news_api import Fx168NewsApiScraper
 from scrapers.simple.geekwire import GeekwireScraper
 from scrapers.simple.hibor import HiborScraper
 from scrapers.simple.hk01 import Hk01Scraper
@@ -262,7 +261,6 @@ SCRAPER_REGISTRY: Dict[str, type] = {
     "driveteslacanada": DriveteslacanadaScraper,
     "fidelity": FidelityScraper,
     "finet_live": FinetLiveScraper,
-    "fx168_news_api": Fx168NewsApiScraper,
     "moneycontrol": MoneycontrolScraper,
     "sherwood": SherwoodScraper,
     "telegraph": TelegraphScraper,
@@ -413,7 +411,7 @@ if __name__ == "__main__":
 
     class MockRequest:
         def get_json(self, silent=False):
-            return {"sources": "fx168_live", "test": True}
+            return {"sources": "all", "test": True}
 
     log = SpiderUtil(name="main")
     use_browser = len(sys.argv) > 1 and sys.argv[1] == "browser"
