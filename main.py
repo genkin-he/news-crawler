@@ -413,7 +413,7 @@ if __name__ == "__main__":
 
     class MockRequest:
         def get_json(self, silent=False):
-            return {"sources": "all", "test": True}
+            return {"sources": "statementdog", "test": True}
 
     log = SpiderUtil(name="main")
     use_browser = len(sys.argv) > 1 and sys.argv[1] == "browser"
