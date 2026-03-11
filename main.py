@@ -192,7 +192,6 @@ SCRAPER_REGISTRY: Dict[str, type] = {
     "hkej_instantnews": HkejInstantnewsScraper,
     "in_en": InEnScraper,
     "infoq": InfoqScraper,
-    "insidermonkey": InsidermonkeyScraper,
     "investing_cn": InvestingCnScraper,
     "investing_us": InvestingUsScraper,
     "investinglive": InvestingliveScraper,
@@ -269,6 +268,7 @@ SCRAPER_REGISTRY: Dict[str, type] = {
     "telegraph": TelegraphScraper,
     "qq": QqScraper,
     "eeetimes": EetimesScraper,
+    # "insidermonkey": InsidermonkeyScraper,
 }
 
 
