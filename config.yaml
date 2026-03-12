@@ -34,3 +34,8 @@ link_cache:
     statementdog: "all"
     scmp: "all"
     qq: "all"
+    coindesk: "all"
+    business_standard: "all"
+    hkej_instantnews: "all"
+    businesstimes: "all"
+    businesstimes_news: "all"
