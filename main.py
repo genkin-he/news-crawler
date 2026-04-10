@@ -5,7 +5,7 @@ import json
 import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import functions_framework
 import yaml
@@ -18,20 +18,20 @@ from utils.spider_util import SpiderUtil
 class MockBigQueryClient:
     """测试模式下使用的假 BigQuery 客户端，不依赖 GCP 与网络"""
 
-    def link_exists(self, link: str, source: Optional[str] = None) -> bool:
+    def link_exists(self, link: str, source: str | None = None) -> bool:
         return False
 
     def add_to_link_cache(self, link: str, source: str) -> None:
         """测试模式下不需要缓存，直接跳过"""
         pass
 
-    def insert_article(self, article: Dict) -> bool:
+    def insert_article(self, article: dict) -> bool:
         SpiderUtil(name="test").info(
             "save_article: " + json.dumps(article, ensure_ascii=False, indent=2)
         )
         return True
 
-    def insert_articles(self, articles: List[Dict]) -> bool:
+    def insert_articles(self, articles: list[dict]) -> bool:
         SpiderUtil(name="test").info(
             "save_articles: " + json.dumps(articles, ensure_ascii=False, indent=2)
         )
@@ -81,7 +81,6 @@ from scrapers.simple.hkej_dailynews import HkejDailynewsScraper
 from scrapers.simple.hkej_instantnews import HkejInstantnewsScraper
 from scrapers.simple.in_en import InEnScraper
 from scrapers.simple.infoq import InfoqScraper
-from scrapers.simple.insidermonkey import InsidermonkeyScraper
 from scrapers.simple.investing_cn import InvestingCnScraper
 from scrapers.simple.investing_us import InvestingUsScraper
 from scrapers.simple.investinglive import InvestingliveScraper
@@ -137,9 +136,11 @@ from scrapers.simple.thebambooworks import ThebambooworksScraper
 from scrapers.simple.thehill import ThehillScraper
 from scrapers.simple.theregister import TheregisterScraper
 from scrapers.simple.timeweekly import TimeweeklyScraper
-from scrapers.simple.tipranks import TipranksScraper
-from scrapers.simple.tipranks_announcements import TipranksAnnouncementsScraper
-from scrapers.simple.tipranks_others import TipranksOthersScraper
+
+# 没有 description 暂时取消
+# from scrapers.simple.tipranks import TipranksScraper
+# from scrapers.simple.tipranks_announcements import TipranksAnnouncementsScraper
+# from scrapers.simple.tipranks_others import TipranksOthersScraper
 from scrapers.simple.traderslog import TraderslogScraper
 from scrapers.simple.tradingview import TradingviewScraper
 from scrapers.simple.tvb import TvbScraper
@@ -153,7 +154,7 @@ from scrapers.simple.yahoo_sg import YahooSgScraper
 from scrapers.simple.yahoo_us import YahooUsScraper
 from scrapers.simple.yicaiglobal import YicaiglobalScraper
 
-SCRAPER_REGISTRY: Dict[str, type] = {
+SCRAPER_REGISTRY: dict[str, type] = {
     "techcrunch": TechCrunchScraper,
     "apnews": APNewsScraper,
     "coinlive": CoinliveScraper,
@@ -227,9 +228,9 @@ SCRAPER_REGISTRY: Dict[str, type] = {
     "talkmarkets": TalkmarketsScraper,
     "technews": TechnewsScraper,
     "timeweekly": TimeweeklyScraper,
-    "tipranks": TipranksScraper,
-    "tipranks_announcements": TipranksAnnouncementsScraper,
-    "tipranks_others": TipranksOthersScraper,
+    # "tipranks": TipranksScraper,
+    # "tipranks_announcements": TipranksAnnouncementsScraper,
+    # "tipranks_others": TipranksOthersScraper,
     "tradingview": TradingviewScraper,
     "tvb": TvbScraper,
     "unusualwhales": UnusualwhalesScraper,
@@ -270,7 +271,7 @@ SCRAPER_REGISTRY: Dict[str, type] = {
 }
 
 
-def _run_crawl(request: Any, scraper_registry: Dict[str, type]) -> tuple:
+def _run_crawl(request: Any, scraper_registry: dict[str, type]) -> tuple:
     """
     公共爬取逻辑。sources=all 时使用注册表 keys，无需在 config 中再配一份。
     """
@@ -278,7 +279,7 @@ def _run_crawl(request: Any, scraper_registry: Dict[str, type]) -> tuple:
     sources_param = request_json.get("sources", "all")
     test_mode = request_json.get("test", False)
 
-    with open("config.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     if sources_param == "all":
